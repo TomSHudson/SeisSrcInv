@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: SeisSrcInv
+Version: 0.0.1
+Summary: A full waveform seismic source mechanism inversion package
+Home-page: https://github.com/TomSHudson/SeisSrcInv
+Author: Tom Hudson
+Author-email: tsh37@cam.ac.uk
+License: UNKNOWN
+Description: # SeisSrcInv
+        
+        A full waveform seismic source mechanism inversion package. This package takes Green's functions and real, observed seismograms and performs a Bayesian inversion. The package also allows for the inversion results to be plotted.
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Programming Language :: Python :: 2
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Description-Content-Type: text/markdown

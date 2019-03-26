@@ -1,0 +1,11 @@
+numpy
+scipy
+os
+sys
+pickle
+random
+math
+multiprocessing
+matplotlib
+obspy
+glob
