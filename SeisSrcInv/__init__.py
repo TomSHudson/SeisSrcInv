@@ -4,3 +4,5 @@ __description__ = "SeisSrcInv - A full waveform seismic source mechanism inversi
 __license__ = "MIT"
 __author__ = "Tom Hudson"
 __email__ = "tsh37@cantab.net"
+import inversion as inversion
+import plot as plot

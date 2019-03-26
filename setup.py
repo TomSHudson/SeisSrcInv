@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="SeisSrcInv",
-    version="0.0.1",
+    version="0.0.3",
     author="Tom Hudson",
     author_email="tsh37@cam.ac.uk",
     description="A full waveform seismic source mechanism inversion package",
@@ -19,5 +19,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    install_requires=['numpy', 'scipy', 'os', 'sys', 'pickle', 'random', 'math', 'multiprocessing', 'matplotlib', 'obspy', 'glob'],
 )
+# install_requires=['numpy', 'scipy', 'os', 'sys', 'pickle', 'random', 'math', 'multiprocessing', 'matplotlib', 'obspy', 'glob']

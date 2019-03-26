@@ -13,3 +13,6 @@ python setup.py install
 
 ## Usage:
 For example of usage, see example.ipynb jupyter-notebook or example.pdf. The jupyter-notebook should run once SeisSrcInv is installed.
+For other optional arguments try:
+help(SeisSrcInv.inversion.run)
+help(SeisSrcInv.plot.run)
