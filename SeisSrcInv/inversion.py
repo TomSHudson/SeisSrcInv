@@ -38,32 +38,33 @@ import multiprocessing
 
 
 # Specify parameters:
-datadir = '/Users/tomhudson/Python/obspy_scripts/fk/test_data/output_data_for_inversion_MT_and_single_force_Rhone_gl_event_20180214185538'
-outdir = "./python_FW_outputs"
-real_data_fnames = ['real_data_RA51_l.txt', 'real_data_RA52_l.txt', 'real_data_RA53_l.txt', 'real_data_RA54_l.txt', 'real_data_RA55_l.txt', 'real_data_RA56_l.txt', 'real_data_RA57_l.txt', 'real_data_RA51_q.txt', 'real_data_RA52_q.txt', 'real_data_RA53_q.txt', 'real_data_RA54_q.txt', 'real_data_RA55_q.txt', 'real_data_RA56_q.txt', 'real_data_RA57_q.txt', 'real_data_RA51_t.txt', 'real_data_RA52_t.txt', 'real_data_RA53_t.txt', 'real_data_RA54_t.txt', 'real_data_RA55_t.txt', 'real_data_RA56_t.txt', 'real_data_RA57_t.txt'] ##['real_data_SKR01_z.txt', 'real_data_SKR02_z.txt', 'real_data_SKR03_z.txt', 'real_data_SKR04_z.txt', 'real_data_SKR05_z.txt', 'real_data_SKR06_z.txt', 'real_data_SKR07_z.txt', 'real_data_SKG08_z.txt', 'real_data_SKG13_z.txt'] ##['real_data_ST01_z.txt', 'real_data_ST02_z.txt', 'real_data_ST03_z.txt', 'real_data_ST04_z.txt', 'real_data_ST05_z.txt', 'real_data_ST08_z.txt'] #['real_data_RA51_l.txt', 'real_data_RA52_l.txt', 'real_data_RA53_l.txt']#, 'real_data_RA51_r.txt', 'real_data_RA52_r.txt', 'real_data_RA53_r.txt', 'real_data_RA51_t.txt', 'real_data_RA52_t.txt', 'real_data_RA53_t.txt'] #['real_data_ST01_z.txt', 'real_data_ST02_z.txt', 'real_data_ST03_z.txt', 'real_data_ST04_z.txt', 'real_data_ST05_z.txt', 'real_data_ST06_z.txt', 'real_data_ST07_z.txt', 'real_data_ST08_z.txt', 'real_data_ST09_z.txt', 'real_data_ST10_z.txt'] #['real_data_RA51_z.txt', 'real_data_RA52_z.txt', 'real_data_RA53_z.txt', 'real_data_RA51_r.txt', 'real_data_RA52_r.txt', 'real_data_RA53_r.txt', 'real_data_RA51_t.txt', 'real_data_RA52_t.txt', 'real_data_RA53_t.txt'] # List of real waveform data files within datadir corresponding to each station (i.e. length is number of stations to invert for)
-MT_green_func_fnames = ['green_func_array_MT_RA51_l.txt', 'green_func_array_MT_RA52_l.txt', 'green_func_array_MT_RA53_l.txt', 'green_func_array_MT_RA54_l.txt', 'green_func_array_MT_RA55_l.txt', 'green_func_array_MT_RA56_l.txt', 'green_func_array_MT_RA57_l.txt', 'green_func_array_MT_RA51_q.txt', 'green_func_array_MT_RA52_q.txt', 'green_func_array_MT_RA53_q.txt', 'green_func_array_MT_RA54_q.txt', 'green_func_array_MT_RA55_q.txt', 'green_func_array_MT_RA56_q.txt', 'green_func_array_MT_RA57_q.txt', 'green_func_array_MT_RA51_t.txt', 'green_func_array_MT_RA52_t.txt', 'green_func_array_MT_RA53_t.txt', 'green_func_array_MT_RA54_t.txt', 'green_func_array_MT_RA55_t.txt', 'green_func_array_MT_RA56_t.txt', 'green_func_array_MT_RA57_t.txt'] ##['green_func_array_MT_SKR01_z.txt', 'green_func_array_MT_SKR02_z.txt', 'green_func_array_MT_SKR03_z.txt', 'green_func_array_MT_SKR04_z.txt', 'green_func_array_MT_SKR05_z.txt', 'green_func_array_MT_SKR06_z.txt', 'green_func_array_MT_SKR07_z.txt', 'green_func_array_MT_SKG08_z.txt', 'green_func_array_MT_SKG13_z.txt'] ##['green_func_array_MT_ST01_z.txt', 'green_func_array_MT_ST02_z.txt', 'green_func_array_MT_ST03_z.txt', 'green_func_array_MT_ST04_z.txt', 'green_func_array_MT_ST05_z.txt', 'green_func_array_MT_ST08_z.txt'] #['green_func_array_MT_RA51_l.txt', 'green_func_array_MT_RA52_l.txt', 'green_func_array_MT_RA53_l.txt']#, 'green_func_array_MT_RA51_r.txt', 'green_func_array_MT_RA52_r.txt', 'green_func_array_MT_RA53_r.txt', 'green_func_array_MT_RA51_t.txt', 'green_func_array_MT_RA52_t.txt', 'green_func_array_MT_RA53_t.txt'] #['green_func_array_MT_ST01_z.txt', 'green_func_array_MT_ST02_z.txt', 'green_func_array_MT_ST03_z.txt', 'green_func_array_MT_ST04_z.txt', 'green_func_array_MT_ST05_z.txt', 'green_func_array_MT_ST06_z.txt', 'green_func_array_MT_ST07_z.txt', 'green_func_array_MT_ST08_z.txt', 'green_func_array_MT_ST09_z.txt', 'green_func_array_MT_ST10_z.txt'] #['green_func_array_MT_RA51_z.txt', 'green_func_array_MT_RA52_z.txt', 'green_func_array_MT_RA53_z.txt', 'green_func_array_MT_RA51_r.txt', 'green_func_array_MT_RA52_r.txt', 'green_func_array_MT_RA53_r.txt', 'green_func_array_MT_RA51_t.txt', 'green_func_array_MT_RA52_t.txt', 'green_func_array_MT_RA53_t.txt'] # List of Green's functions data files (generated using fk code) within datadir corresponding to each station (i.e. length is number of stations to invert for)
-single_force_green_func_fnames = ['green_func_array_single_force_RA51_l.txt', 'green_func_array_single_force_RA52_l.txt', 'green_func_array_single_force_RA53_l.txt', 'green_func_array_single_force_RA54_l.txt', 'green_func_array_single_force_RA55_l.txt', 'green_func_array_single_force_RA56_l.txt', 'green_func_array_single_force_RA57_l.txt', 'green_func_array_single_force_RA51_q.txt', 'green_func_array_single_force_RA52_q.txt', 'green_func_array_single_force_RA53_q.txt', 'green_func_array_single_force_RA54_q.txt', 'green_func_array_single_force_RA55_q.txt', 'green_func_array_single_force_RA56_q.txt', 'green_func_array_single_force_RA57_q.txt', 'green_func_array_single_force_RA51_t.txt', 'green_func_array_single_force_RA52_t.txt', 'green_func_array_single_force_RA53_t.txt', 'green_func_array_single_force_RA54_t.txt', 'green_func_array_single_force_RA55_t.txt', 'green_func_array_single_force_RA56_t.txt', 'green_func_array_single_force_RA57_t.txt'] ##['green_func_array_single_force_SKR01_z.txt', 'green_func_array_single_force_SKR02_z.txt', 'green_func_array_single_force_SKR03_z.txt', 'green_func_array_single_force_SKR04_z.txt', 'green_func_array_single_force_SKR05_z.txt', 'green_func_array_single_force_SKR06_z.txt', 'green_func_array_single_force_SKR07_z.txt', 'green_func_array_single_force_SKG08_z.txt', 'green_func_array_single_force_SKG13_z.txt'] ##['green_func_array_single_force_ST01_z.txt', 'green_func_array_single_force_ST02_z.txt', 'green_func_array_single_force_ST03_z.txt', 'green_func_array_single_force_ST04_z.txt', 'green_func_array_single_force_ST05_z.txt', 'green_func_array_single_force_ST08_z.txt'] #['green_func_array_single_force_RA51_l.txt', 'green_func_array_single_force_RA52_l.txt', 'green_func_array_single_force_RA53_l.txt']#, 'green_func_array_single_force_RA51_r.txt', 'green_func_array_single_force_RA52_r.txt', 'green_func_array_single_force_RA53_r.txt', 'green_func_array_single_force_RA51_t.txt', 'green_func_array_single_force_RA52_t.txt', 'green_func_array_single_force_RA53_t.txt'] #['green_func_array_single_force_ST01_z.txt', 'green_func_array_single_force_ST02_z.txt', 'green_func_array_single_force_ST03_z.txt', 'green_func_array_single_force_ST04_z.txt', 'green_func_array_single_force_ST05_z.txt', 'green_func_array_single_force_ST06_z.txt', 'green_func_array_single_force_ST07_z.txt', 'green_func_array_single_force_ST08_z.txt', 'green_func_array_single_force_ST09_z.txt', 'green_func_array_single_force_ST10_z.txt'] #['green_func_array_single_force_RA51_z.txt', 'green_func_array_single_force_RA52_z.txt', 'green_func_array_single_force_RA53_z.txt', 'green_func_array_single_force_RA51_r.txt', 'green_func_array_single_force_RA52_r.txt', 'green_func_array_single_force_RA53_r.txt', 'green_func_array_single_force_RA51_t.txt', 'green_func_array_single_force_RA52_t.txt', 'green_func_array_single_force_RA53_t.txt'] # List of Green's functions data files (generated using fk code) within datadir corresponding to each station (i.e. length is number of stations to invert for)
-data_labels = ["RA51, L", "RA52, L", "RA53, L", "RA54, L", "RA55, L", "RA56, L", "RA57, L", "RA51, Q", "RA52, Q", "RA53, Q", "RA54, Q", "RA55, Q", "RA56, Q", "RA57, Q", "RA51, T", "RA52, T", "RA53, T", "RA54, T", "RA55, T", "RA56, T", "RA57, T"] ##["SKR01, Z", "SKR02, Z", "SKR03, Z", "SKR04, Z", "SKR05, Z", "SKR06, Z", "SKR07, Z", "SKG08, Z", "SKG13, Z"] ##["ST01, Z", "ST02, Z", "ST03, Z", "ST04, Z", "ST05, Z", "ST08, Z"] #["RA51, L", "RA52, L", "RA53, L"]#, "RA51, R", "RA52, R", "RA53, R", "RA51, T", "RA52, T", "RA53, T"] #["ST01, Z", "ST02, Z", "ST03, Z", "ST04, Z", "ST05, Z", "ST06, Z", "ST07, Z", "ST08, Z", "ST09, Z", "ST10, Z"] #["RA51, Z", "RA52, Z", "RA53, Z", "RA51, R", "RA52, R", "RA53, R", "RA51, T", "RA52, T", "RA53, T"] # Format of these labels must be of the form "station_name, comp" with the comma
-inversion_type = "single_force_crack_no_coupling" # Inversion type can be: full_mt, full_mt_Lune_samp, DC, single_force, DC_single_force_couple, DC_single_force_no_coupling, DC_crack_couple, or single_force_crack_no_coupling. (if single force, greens functions must be 3 components rather than 6)
-perform_normallised_waveform_inversion = False ###False # Boolean - If True, performs normallised waveform inversion, whereby each synthetic and real waveform is normallised before comparision. Effectively removes overall amplitude from inversion if True. Should use True if using VR comparison method.
-compare_all_waveforms_simultaneously = False # Bolean - If True, compares all waveform observations together to give one similarity value. If False, compares waveforms from individual recievers separately then combines using equally weighted average. Default = True.
-num_samples = 10000 #1000000 # Number of samples to perform Monte Carlo over
-comparison_metric = "VR" # Options are VR (variation reduction), CC (cross-correlation of static signal), CC-shift (cross-correlation of signal with shift allowed), or PCC (Pearson correlation coeficient), gau (Gaussian based method for estimating the true statistical probability) (Note: CC is the most stable, as range is naturally from 0-1, rather than -1 to 1)
-manual_indices_time_shift_MT = [23, 22, 21, 23, 25, 23, 23, 22, 22, 21, 23, 25, 23, 24, 24, 24, 21, 23, 28, 28, 25] # Values by which to shift greens functions (must be integers here)
-manual_indices_time_shift_SF = [22, 22, 21, 22, 24, 23, 23, 22, 22, 21, 22, 24, 23, 24, 23, 23, 20, 22, 27, 27, 24] # Values by which to shift greens functions (must be integers here)
-cut_phase_start_vals = [] # Indices by which to begin cut phase (must be integers, and specified for every trace, if specified). (Default is not to cut the P and S phases) (must specify cut_phase_end_vals too)
-cut_phase_length = 100 # Length to cut phases by. Integer. Currently this number must be constant, as code cannot deal with different data lengths.
-nlloc_hyp_filename = "NLLoc_data/loc.20180214.185538.grid0.loc.hyp" ##"NLLoc_data/loc.Tom__RunNLLoc000.20090121.042009.grid0.loc.hyp" #"NLLoc_data/loc.run1.20171222.022435.grid0.loc.hyp" #"NLLoc_data/loc.Tom__RunNLLoc000.20090121.042009.grid0.loc.hyp" # Nonlinloc filename for saving event data to file in MTFIT format (for plotting, further analysis etc)
-plot_switch = True # If True, will plot outputs to screen
-num_processors = 1 #1 # Number of processors to run for (default is 1)
-set_pre_time_shift_values_to_zero_switch = True # If true, sets values before time shift to zero, to account for rolling the data on itself (default is True)
-only_save_non_zero_solns_switch = False # If True, will only save results with a non-zero probability.
-return_absolute_similarity_values_switch = True # If True, will also save absolute similarity values, as well as the normallised values. (will be saved to the output dict as )
-invert_for_ratio_of_multiple_media_greens_func_switch = False # If True, allows for invertsing for the ratio of two sets of greens functions, for different media, relative to one another (with the split in greens function fnames sepcified by green_func_fnames_split_index).
-green_func_fnames_split_index = 6 # Index of first greens function fname for second medium
-green_func_phase_labels = ['P','P','P','P','P','P','P','S','S','S','S','S','S','S','S','S','S','S','S','S','S'] # List of same length as data_labels, to specify the phase associated with each greens function. Can be "P", "S", or "surface". If this parameter is specified then will use multiple greens function ratios.
-invert_for_relative_magnitudes_switch = True # If True, inverts for relative magnitude. Notes: Must have perform_normallised_waveform_inversion=False; Will then vary magnitude by 10^lower range to upper range, specified by rel_exp_mag_range. (Default is False)
-rel_exp_mag_range = [-3.0, 3.0] # Values of lower and upper exponent for 10^x , e.g. [-3.0,3.0] would be relative magnitude range from 10^-3 to 10^3 (Default is [0.0,0.0])
+if __name__ == "__main__":
+    datadir = './data_in'
+    outdir = "./python_FW_outputs"
+    real_data_fnames = ['real_data_RA51_l.txt', 'real_data_RA52_l.txt', 'real_data_RA53_l.txt', 'real_data_RA54_l.txt', 'real_data_RA55_l.txt', 'real_data_RA56_l.txt', 'real_data_RA57_l.txt', 'real_data_RA51_q.txt', 'real_data_RA52_q.txt', 'real_data_RA53_q.txt', 'real_data_RA54_q.txt', 'real_data_RA55_q.txt', 'real_data_RA56_q.txt', 'real_data_RA57_q.txt', 'real_data_RA51_t.txt', 'real_data_RA52_t.txt', 'real_data_RA53_t.txt', 'real_data_RA54_t.txt', 'real_data_RA55_t.txt', 'real_data_RA56_t.txt', 'real_data_RA57_t.txt'] ##['real_data_SKR01_z.txt', 'real_data_SKR02_z.txt', 'real_data_SKR03_z.txt', 'real_data_SKR04_z.txt', 'real_data_SKR05_z.txt', 'real_data_SKR06_z.txt', 'real_data_SKR07_z.txt', 'real_data_SKG08_z.txt', 'real_data_SKG13_z.txt'] ##['real_data_ST01_z.txt', 'real_data_ST02_z.txt', 'real_data_ST03_z.txt', 'real_data_ST04_z.txt', 'real_data_ST05_z.txt', 'real_data_ST08_z.txt'] #['real_data_RA51_l.txt', 'real_data_RA52_l.txt', 'real_data_RA53_l.txt']#, 'real_data_RA51_r.txt', 'real_data_RA52_r.txt', 'real_data_RA53_r.txt', 'real_data_RA51_t.txt', 'real_data_RA52_t.txt', 'real_data_RA53_t.txt'] #['real_data_ST01_z.txt', 'real_data_ST02_z.txt', 'real_data_ST03_z.txt', 'real_data_ST04_z.txt', 'real_data_ST05_z.txt', 'real_data_ST06_z.txt', 'real_data_ST07_z.txt', 'real_data_ST08_z.txt', 'real_data_ST09_z.txt', 'real_data_ST10_z.txt'] #['real_data_RA51_z.txt', 'real_data_RA52_z.txt', 'real_data_RA53_z.txt', 'real_data_RA51_r.txt', 'real_data_RA52_r.txt', 'real_data_RA53_r.txt', 'real_data_RA51_t.txt', 'real_data_RA52_t.txt', 'real_data_RA53_t.txt'] # List of real waveform data files within datadir corresponding to each station (i.e. length is number of stations to invert for)
+    MT_green_func_fnames = ['green_func_array_MT_RA51_l.txt', 'green_func_array_MT_RA52_l.txt', 'green_func_array_MT_RA53_l.txt', 'green_func_array_MT_RA54_l.txt', 'green_func_array_MT_RA55_l.txt', 'green_func_array_MT_RA56_l.txt', 'green_func_array_MT_RA57_l.txt', 'green_func_array_MT_RA51_q.txt', 'green_func_array_MT_RA52_q.txt', 'green_func_array_MT_RA53_q.txt', 'green_func_array_MT_RA54_q.txt', 'green_func_array_MT_RA55_q.txt', 'green_func_array_MT_RA56_q.txt', 'green_func_array_MT_RA57_q.txt', 'green_func_array_MT_RA51_t.txt', 'green_func_array_MT_RA52_t.txt', 'green_func_array_MT_RA53_t.txt', 'green_func_array_MT_RA54_t.txt', 'green_func_array_MT_RA55_t.txt', 'green_func_array_MT_RA56_t.txt', 'green_func_array_MT_RA57_t.txt'] ##['green_func_array_MT_SKR01_z.txt', 'green_func_array_MT_SKR02_z.txt', 'green_func_array_MT_SKR03_z.txt', 'green_func_array_MT_SKR04_z.txt', 'green_func_array_MT_SKR05_z.txt', 'green_func_array_MT_SKR06_z.txt', 'green_func_array_MT_SKR07_z.txt', 'green_func_array_MT_SKG08_z.txt', 'green_func_array_MT_SKG13_z.txt'] ##['green_func_array_MT_ST01_z.txt', 'green_func_array_MT_ST02_z.txt', 'green_func_array_MT_ST03_z.txt', 'green_func_array_MT_ST04_z.txt', 'green_func_array_MT_ST05_z.txt', 'green_func_array_MT_ST08_z.txt'] #['green_func_array_MT_RA51_l.txt', 'green_func_array_MT_RA52_l.txt', 'green_func_array_MT_RA53_l.txt']#, 'green_func_array_MT_RA51_r.txt', 'green_func_array_MT_RA52_r.txt', 'green_func_array_MT_RA53_r.txt', 'green_func_array_MT_RA51_t.txt', 'green_func_array_MT_RA52_t.txt', 'green_func_array_MT_RA53_t.txt'] #['green_func_array_MT_ST01_z.txt', 'green_func_array_MT_ST02_z.txt', 'green_func_array_MT_ST03_z.txt', 'green_func_array_MT_ST04_z.txt', 'green_func_array_MT_ST05_z.txt', 'green_func_array_MT_ST06_z.txt', 'green_func_array_MT_ST07_z.txt', 'green_func_array_MT_ST08_z.txt', 'green_func_array_MT_ST09_z.txt', 'green_func_array_MT_ST10_z.txt'] #['green_func_array_MT_RA51_z.txt', 'green_func_array_MT_RA52_z.txt', 'green_func_array_MT_RA53_z.txt', 'green_func_array_MT_RA51_r.txt', 'green_func_array_MT_RA52_r.txt', 'green_func_array_MT_RA53_r.txt', 'green_func_array_MT_RA51_t.txt', 'green_func_array_MT_RA52_t.txt', 'green_func_array_MT_RA53_t.txt'] # List of Green's functions data files (generated using fk code) within datadir corresponding to each station (i.e. length is number of stations to invert for)
+    single_force_green_func_fnames = ['green_func_array_single_force_RA51_l.txt', 'green_func_array_single_force_RA52_l.txt', 'green_func_array_single_force_RA53_l.txt', 'green_func_array_single_force_RA54_l.txt', 'green_func_array_single_force_RA55_l.txt', 'green_func_array_single_force_RA56_l.txt', 'green_func_array_single_force_RA57_l.txt', 'green_func_array_single_force_RA51_q.txt', 'green_func_array_single_force_RA52_q.txt', 'green_func_array_single_force_RA53_q.txt', 'green_func_array_single_force_RA54_q.txt', 'green_func_array_single_force_RA55_q.txt', 'green_func_array_single_force_RA56_q.txt', 'green_func_array_single_force_RA57_q.txt', 'green_func_array_single_force_RA51_t.txt', 'green_func_array_single_force_RA52_t.txt', 'green_func_array_single_force_RA53_t.txt', 'green_func_array_single_force_RA54_t.txt', 'green_func_array_single_force_RA55_t.txt', 'green_func_array_single_force_RA56_t.txt', 'green_func_array_single_force_RA57_t.txt'] ##['green_func_array_single_force_SKR01_z.txt', 'green_func_array_single_force_SKR02_z.txt', 'green_func_array_single_force_SKR03_z.txt', 'green_func_array_single_force_SKR04_z.txt', 'green_func_array_single_force_SKR05_z.txt', 'green_func_array_single_force_SKR06_z.txt', 'green_func_array_single_force_SKR07_z.txt', 'green_func_array_single_force_SKG08_z.txt', 'green_func_array_single_force_SKG13_z.txt'] ##['green_func_array_single_force_ST01_z.txt', 'green_func_array_single_force_ST02_z.txt', 'green_func_array_single_force_ST03_z.txt', 'green_func_array_single_force_ST04_z.txt', 'green_func_array_single_force_ST05_z.txt', 'green_func_array_single_force_ST08_z.txt'] #['green_func_array_single_force_RA51_l.txt', 'green_func_array_single_force_RA52_l.txt', 'green_func_array_single_force_RA53_l.txt']#, 'green_func_array_single_force_RA51_r.txt', 'green_func_array_single_force_RA52_r.txt', 'green_func_array_single_force_RA53_r.txt', 'green_func_array_single_force_RA51_t.txt', 'green_func_array_single_force_RA52_t.txt', 'green_func_array_single_force_RA53_t.txt'] #['green_func_array_single_force_ST01_z.txt', 'green_func_array_single_force_ST02_z.txt', 'green_func_array_single_force_ST03_z.txt', 'green_func_array_single_force_ST04_z.txt', 'green_func_array_single_force_ST05_z.txt', 'green_func_array_single_force_ST06_z.txt', 'green_func_array_single_force_ST07_z.txt', 'green_func_array_single_force_ST08_z.txt', 'green_func_array_single_force_ST09_z.txt', 'green_func_array_single_force_ST10_z.txt'] #['green_func_array_single_force_RA51_z.txt', 'green_func_array_single_force_RA52_z.txt', 'green_func_array_single_force_RA53_z.txt', 'green_func_array_single_force_RA51_r.txt', 'green_func_array_single_force_RA52_r.txt', 'green_func_array_single_force_RA53_r.txt', 'green_func_array_single_force_RA51_t.txt', 'green_func_array_single_force_RA52_t.txt', 'green_func_array_single_force_RA53_t.txt'] # List of Green's functions data files (generated using fk code) within datadir corresponding to each station (i.e. length is number of stations to invert for)
+    data_labels = ["RA51, L", "RA52, L", "RA53, L", "RA54, L", "RA55, L", "RA56, L", "RA57, L", "RA51, Q", "RA52, Q", "RA53, Q", "RA54, Q", "RA55, Q", "RA56, Q", "RA57, Q", "RA51, T", "RA52, T", "RA53, T", "RA54, T", "RA55, T", "RA56, T", "RA57, T"] ##["SKR01, Z", "SKR02, Z", "SKR03, Z", "SKR04, Z", "SKR05, Z", "SKR06, Z", "SKR07, Z", "SKG08, Z", "SKG13, Z"] ##["ST01, Z", "ST02, Z", "ST03, Z", "ST04, Z", "ST05, Z", "ST08, Z"] #["RA51, L", "RA52, L", "RA53, L"]#, "RA51, R", "RA52, R", "RA53, R", "RA51, T", "RA52, T", "RA53, T"] #["ST01, Z", "ST02, Z", "ST03, Z", "ST04, Z", "ST05, Z", "ST06, Z", "ST07, Z", "ST08, Z", "ST09, Z", "ST10, Z"] #["RA51, Z", "RA52, Z", "RA53, Z", "RA51, R", "RA52, R", "RA53, R", "RA51, T", "RA52, T", "RA53, T"] # Format of these labels must be of the form "station_name, comp" with the comma
+    inversion_type = "full_mt" # Inversion type can be: full_mt, full_mt_Lune_samp, DC, single_force, DC_single_force_couple, DC_single_force_no_coupling, DC_crack_couple, or single_force_crack_no_coupling. (if single force, greens functions must be 3 components rather than 6)
+    perform_normallised_waveform_inversion = False ###False # Boolean - If True, performs normallised waveform inversion, whereby each synthetic and real waveform is normallised before comparision. Effectively removes overall amplitude from inversion if True. Should use True if using VR comparison method.
+    compare_all_waveforms_simultaneously = False # Bolean - If True, compares all waveform observations together to give one similarity value. If False, compares waveforms from individual recievers separately then combines using equally weighted average. Default = True.
+    num_samples = 10000 #1000000 # Number of samples to perform Monte Carlo over
+    comparison_metric = "VR" # Options are VR (variation reduction), CC (cross-correlation of static signal), CC-shift (cross-correlation of signal with shift allowed), or PCC (Pearson correlation coeficient), gau (Gaussian based method for estimating the true statistical probability) (Note: CC is the most stable, as range is naturally from 0-1, rather than -1 to 1)
+    manual_indices_time_shift_MT = [23, 22, 21, 23, 25, 23, 23, 22, 22, 21, 23, 25, 23, 24, 24, 24, 21, 23, 28, 28, 25] # Values by which to shift greens functions (must be integers here)
+    manual_indices_time_shift_SF = [22, 22, 21, 22, 24, 23, 23, 22, 22, 21, 22, 24, 23, 24, 23, 23, 20, 22, 27, 27, 24] # Values by which to shift greens functions (must be integers here)
+    cut_phase_start_vals = [] # Indices by which to begin cut phase (must be integers, and specified for every trace, if specified). (Default is not to cut the P and S phases) (must specify cut_phase_end_vals too)
+    cut_phase_length = 100 # Length to cut phases by. Integer. Currently this number must be constant, as code cannot deal with different data lengths.
+    nlloc_hyp_filename = "NLLoc_data/loc.20180214.185538.grid0.loc.hyp" ##"NLLoc_data/loc.Tom__RunNLLoc000.20090121.042009.grid0.loc.hyp" #"NLLoc_data/loc.run1.20171222.022435.grid0.loc.hyp" #"NLLoc_data/loc.Tom__RunNLLoc000.20090121.042009.grid0.loc.hyp" # Nonlinloc filename for saving event data to file in MTFIT format (for plotting, further analysis etc)
+    plot_switch = True # If True, will plot outputs to screen
+    num_processors = 1 #1 # Number of processors to run for (default is 1)
+    set_pre_time_shift_values_to_zero_switch = True # If true, sets values before time shift to zero, to account for rolling the data on itself (default is True)
+    only_save_non_zero_solns_switch = False # If True, will only save results with a non-zero probability.
+    return_absolute_similarity_values_switch = True # If True, will also save absolute similarity values, as well as the normallised values. (will be saved to the output dict as )
+    invert_for_ratio_of_multiple_media_greens_func_switch = False # If True, allows for invertsing for the ratio of two sets of greens functions, for different media, relative to one another (with the split in greens function fnames sepcified by green_func_fnames_split_index).
+    green_func_fnames_split_index = 6 # Index of first greens function fname for second medium
+    green_func_phase_labels = ['P','P','P','P','P','P','P','S','S','S','S','S','S','S','S','S','S','S','S','S','S'] # List of same length as data_labels, to specify the phase associated with each greens function. Can be "P", "S", or "surface". If this parameter is specified then will use multiple greens function ratios.
+    invert_for_relative_magnitudes_switch = True # If True, inverts for relative magnitude. Notes: Must have perform_normallised_waveform_inversion=False; Will then vary magnitude by 10^lower range to upper range, specified by rel_exp_mag_range. (Default is False)
+    rel_exp_mag_range = [-3.0, 3.0] # Values of lower and upper exponent for 10^x , e.g. [-3.0,3.0] would be relative magnitude range from 10^-3 to 10^3 (Default is [0.0,0.0])
 
 
 
@@ -117,7 +118,7 @@ def load_input_data_multiple_media(datadir, real_data_fnames, green_func_fnames,
     green_func_fnames_media_1 = green_func_fnames[:green_func_fnames_split_index]
     green_func_fnames_media_2 = green_func_fnames[green_func_fnames_split_index:]
     if not len(green_func_fnames_media_1) == len(green_func_fnames_media_2):
-        print "Greens functions fname array is not correct. Consider whether green_func_fnames_split_index value is correct for splitting the two mediums."
+        print("Greens functions fname array is not correct. Consider whether green_func_fnames_split_index value is correct for splitting the two mediums.")
         sys.exit()
     
     # Set up data storage arrays:
@@ -718,7 +719,7 @@ def compare_synth_to_real_waveforms(real_data_array, synth_waveforms_array, comp
 
 def PARALLEL_worker_mc_inv(procnum, num_samples_per_processor, inversion_type, M_amplitude, green_func_array, real_data_array, comparison_metric, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, return_dict_MTs, return_dict_similarity_values_all_samples, return_dict_MT_single_force_rel_amps, return_dict_medium_1_medium_2_rel_amp_ratios, invert_for_ratio_of_multiple_media_greens_func_switch, green_func_phase_labels, num_phase_types_for_media_ratios, invert_for_relative_magnitudes_switch=False, rel_exp_mag_range=[1.,1.]):
     """Parallel worker function for perform_monte_carlo_sampled_waveform_inversion function."""
-    print "Processing for process:", procnum, "for ", num_samples_per_processor, "samples."
+    print("Processing for process:", procnum, "for ", num_samples_per_processor, "samples.")
     
     # Define temp data stores for current process:
     tmp_MTs = np.zeros((len(green_func_array[0,:,0]), num_samples_per_processor), dtype=float)
@@ -808,7 +809,7 @@ def PARALLEL_worker_mc_inv(procnum, num_samples_per_processor, inversion_type, M
                 tmp_medium_1_medium_2_rel_amp_ratios[i] = frac_medium_2
             
         if i % 10000 == 0:
-            print "Processor number:", procnum, "- Processed for",i,"samples out of",num_samples_per_processor,"samples"
+            print("Processor number:", procnum, "- Processed for",i,"samples out of",num_samples_per_processor,"samples")
     
     # 7. And convert misfit measure to likelihood function probability:
     tmp_similarity_values_all_samples = np.exp(-(1.-tmp_similarity_values_all_samples)/2.)
@@ -821,7 +822,7 @@ def PARALLEL_worker_mc_inv(procnum, num_samples_per_processor, inversion_type, M
         return_dict_medium_1_medium_2_rel_amp_ratios[procnum] = tmp_medium_1_medium_2_rel_amp_ratios_multi_phases
     else:
         return_dict_medium_1_medium_2_rel_amp_ratios[procnum] = tmp_medium_1_medium_2_rel_amp_ratios
-    print "Finished processing process:", procnum, "for ", num_samples_per_processor, "samples."
+    print("Finished processing process:", procnum, "for ", num_samples_per_processor, "samples.")
 
 def perform_monte_carlo_sampled_waveform_inversion(real_data_array, green_func_array, num_samples=1000, M_amplitude=1.,inversion_type="full_mt",comparison_metric="CC",perform_normallised_waveform_inversion=True, compare_all_waveforms_simultaneously=True, num_processors=1, return_absolute_similarity_values_switch=False, invert_for_ratio_of_multiple_media_greens_func_switch=False, green_func_phase_labels=[], num_phase_types_for_media_ratios=0, invert_for_relative_magnitudes_switch=False, rel_exp_mag_range=[1.,1.]):
     """Function to use random Monte Carlo sampling of the moment tensor to derive a best fit for the moment tensor to the data.
@@ -1007,7 +1008,7 @@ def save_to_MTFIT_style_file(MTs, MTp, nlloc_hyp_filename, inversion_type, outdi
         out_dict["MTp_absolute"] = MTp_absolute
     # And save to file:
     out_fname = outdir+"/"+uid+"_FW_"+inversion_type+".pkl"
-    print "Saving FW inversion to file:", out_fname
+    print("Saving FW inversion to file:", out_fname)
     pickle.dump(out_dict, open(out_fname, "wb"))
     
 
@@ -1071,7 +1072,7 @@ def save_specific_waveforms_to_file(real_data_array, synth_data_array, data_labe
     uid, stations = get_event_uid_and_station_data_MTFIT_FORMAT_from_nonlinloc_hyp_file(nlloc_hyp_filename)
     # And write to file:
     out_fname = outdir+"/"+uid+"_FW_"+inversion_type+".wfs"
-    print "Saving FW inversion to file:", out_fname
+    print("Saving FW inversion to file:", out_fname)
     pickle.dump(out_wf_dict, open(out_fname, "wb"))
     
 def run_multi_medium_inversion(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_green_func_fnames, data_labels, inversion_type, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, num_samples, comparison_metric, manual_indices_time_shift_MT, manual_indices_time_shift_SF, nlloc_hyp_filename, cut_phase_start_vals=[], cut_phase_length=0, plot_switch=False, num_processors=1, set_pre_time_shift_values_to_zero_switch=True, only_save_non_zero_solns_switch=False, return_absolute_similarity_values_switch=False, invert_for_ratio_of_multiple_media_greens_func_switch=False, green_func_fnames_split_index=0, green_func_phase_labels=[], invert_for_relative_magnitudes_switch=False, rel_exp_mag_range=[1.,1.]):
@@ -1083,7 +1084,7 @@ def run_multi_medium_inversion(datadir, outdir, real_data_fnames, MT_green_func_
     # Do initial check/s:
     if len(green_func_phase_labels)>0:
         if not len(green_func_array[:,0,0,0]) == len(green_func_phase_labels):
-            print "Error: Greens functions filename array (for medium 1), does not match length of green_func_phase_labels array."
+            print("Error: Greens functions filename array (for medium 1), does not match length of green_func_phase_labels array.")
             sys.exit()
     
     # Get number of different phases, if specified:
@@ -1132,7 +1133,7 @@ def run_multi_medium_inversion(datadir, outdir, real_data_fnames, MT_green_func_
 
     # Check that probability of output is non-zero:
     if math.isnan(MTp[0]):
-        print "Error: Sum of probabilities is equal to zero - therefore no adiquate solution could be found and inversion is terminating."
+        print("Error: Sum of probabilities is equal to zero - therefore no adiquate solution could be found and inversion is terminating.")
         sys.exit()
     
     # Remove zero probability values if specified:
@@ -1184,7 +1185,7 @@ def run_multi_medium_inversion(datadir, outdir, real_data_fnames, MT_green_func_
             else:
                 synth_forward_model_most_likely_result_array = forward_model(green_func_array, MTs[:, np.where(MTp==np.max(MTp))[0][0]])
         plot_specific_forward_model_result(real_data_array, synth_forward_model_most_likely_result_array, data_labels, plot_title="Most likely Monte Carlo sampled solution", perform_normallised_waveform_inversion=perform_normallised_waveform_inversion)
-        print "Most likely solution:", MTs[:,np.where(MTp==np.max(MTp))[0][0]]
+        print("Most likely solution:", MTs[:,np.where(MTp==np.max(MTp))[0][0]])
 
     # And save data to MTFIT style file:
     save_to_MTFIT_style_file(MTs, MTp, nlloc_hyp_filename, inversion_type, outdir, MTp_absolute=MTp_absolute) # Saves pickled dictionary containing data from inversion
@@ -1195,7 +1196,7 @@ def run_multi_medium_inversion(datadir, outdir, real_data_fnames, MT_green_func_
     synth_forward_model_most_likely_result_array = get_synth_forward_model_most_likely_result(MTs, MTp, green_func_array, inversion_type, invert_for_ratio_of_multiple_media_greens_func_switch=invert_for_ratio_of_multiple_media_greens_func_switch, green_func_phase_labels=green_func_phase_labels, num_phase_types_for_media_ratios=num_phase_types_for_media_ratios)
     save_specific_waveforms_to_file(real_data_array, synth_forward_model_most_likely_result_array, data_labels, nlloc_hyp_filename, inversion_type, outdir)
 
-    print "Finished"
+    print("Finished")
         
     
 def run(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_green_func_fnames, data_labels, inversion_type, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, num_samples, comparison_metric, manual_indices_time_shift_MT, manual_indices_time_shift_SF, nlloc_hyp_filename, cut_phase_start_vals=[], cut_phase_length=0, plot_switch=False, num_processors=1, set_pre_time_shift_values_to_zero_switch=True, only_save_non_zero_solns_switch=False, return_absolute_similarity_values_switch=False, invert_for_ratio_of_multiple_media_greens_func_switch=False, green_func_fnames_split_index=0, green_func_phase_labels=[], invert_for_relative_magnitudes_switch=False, rel_exp_mag_range=[1.0,1.0]):
@@ -1280,7 +1281,7 @@ def run(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_gr
     
         # Check that probability of output is non-zero:
         if math.isnan(MTp[0]):
-            print "Error: Sum of probabilities is equal to zero - therefore no adiquate solution could be found and inversion is terminating."
+            print("Error: Sum of probabilities is equal to zero - therefore no adiquate solution could be found and inversion is terminating.")
             sys.exit()
         
         # Remove zero probability values if specified:
@@ -1294,7 +1295,7 @@ def run(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_gr
             else:
                 synth_forward_model_most_likely_result_array = forward_model(green_func_array, MTs[:, np.where(MTp==np.max(MTp))[0][0]])
             plot_specific_forward_model_result(real_data_array, synth_forward_model_most_likely_result_array, data_labels, plot_title="Most likely Monte Carlo sampled solution", perform_normallised_waveform_inversion=perform_normallised_waveform_inversion)
-            print "Most likely solution:", MTs[:,np.where(MTp==np.max(MTp))[0][0]]
+            print("Most likely solution:", MTs[:,np.where(MTp==np.max(MTp))[0][0]])
     
         # And save data to MTFIT style file:
         save_to_MTFIT_style_file(MTs, MTp, nlloc_hyp_filename, inversion_type, outdir, MTp_absolute=MTp_absolute) # Saves pickled dictionary containing data from inversion
@@ -1305,7 +1306,7 @@ def run(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_gr
             synth_forward_model_most_likely_result_array = forward_model(green_func_array, MTs[:, np.where(MTp==np.max(MTp))[0][0]])
         save_specific_waveforms_to_file(real_data_array, synth_forward_model_most_likely_result_array, data_labels, nlloc_hyp_filename, inversion_type, outdir)
 
-        print "Finished"
+        print("Finished")
 
 # ------------------- End of defining various functions used in script -------------------
 

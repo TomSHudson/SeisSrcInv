@@ -5,9 +5,9 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="SeisSrcInv",
-    version="0.0.3",
+    version="0.0.4",
     author="Tom Hudson",
-    author_email="tsh37@cam.ac.uk",
+    author_email="tsh37@alumni.cam.ac.uk",
     description="A full waveform seismic source mechanism inversion package",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -15,7 +15,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
-        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],

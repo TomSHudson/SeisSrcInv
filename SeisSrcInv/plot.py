@@ -75,7 +75,7 @@ def load_MT_dict_from_file(matlab_data_filename):
             MTp_absolute = []
         
     else:
-        print "Cannot recognise input filename."
+        print("Cannot recognise input filename.")
         
     return uid, MTp, MTp_absolute, MTs, stations
     
@@ -430,7 +430,7 @@ def plot_nodal_planes_for_given_NED_sixMT(ax, MT_for_nodal_planes, bounding_circ
         X2_within_bounding_circle = path_coords_plane_2_within_bounding_circle[:,0]
         Y2_within_bounding_circle = path_coords_plane_2_within_bounding_circle[:,1]
     except ValueError:
-        print "(Skipping current nodal plane solution as can't plot.)"
+        print("(Skipping current nodal plane solution as can't plot.)")
         stop_plotting_switch = True # Stops rest of script plotting on current axis
 
     # And plot 2D nodal planes:
@@ -717,7 +717,7 @@ def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern
                 # Get current mt:
                 curr_MT_to_plot = MTs_to_plot[:,i]
                 # And try to plot current MT nodal planes:
-                print "Attempted to plot solution", i
+                print("Attempted to plot solution", i)
                 ax = plot_nodal_planes_for_given_NED_sixMT(ax, curr_MT_to_plot, bounding_circle_path, lower_upper_hemi_switch, alpha_nodal_planes=0.3, plot_plane=plot_plane)
     
     # Or plot single force vector if inversion_type is single_force:
@@ -1008,7 +1008,7 @@ def plot_prob_distribution_DC_vs_single_force(MTs, MTp, figure_filename=[], inve
     # And save figure if given figure filename:
     if not len(figure_filename) == 0:
         plt.savefig(figure_filename, dpi=600)
-        print "Saving plot to file:", figure_filename
+        print("Saving plot to file:", figure_filename)
     else:
         plt.show()
         
@@ -1021,7 +1021,7 @@ def get_frac_of_MTs_using_MT_probs(MTs, MTp, frac_to_sample, return_MTp_samples_
     sample_indices = sorted_indices[0:num_events_to_sample]
     MTs_sample = MTs[:,sample_indices]
     MTp_sample = MTp[sample_indices]
-    print "Sampled",len(MTs_sample[0,:]),"out of",len(MTs[0,:]),"events"
+    print("Sampled",len(MTs_sample[0,:]),"out of",len(MTs[0,:]),"events")
     if return_MTp_samples_switch:
         return MTs_sample, MTp_sample
     else:
@@ -1042,7 +1042,6 @@ def find_delta_gamm_values_from_sixMT(sixMT):
     lambda1 = full_MT_eigvals_sorted[0]
     lambda2 = full_MT_eigvals_sorted[1]
     lambda3 = full_MT_eigvals_sorted[2]
-    # print (lambda1**2 + lambda2**2 + lambda3**2)**0.5 # Should = 1 if normallised correctly
     gamma = np.arctan(((-1*lambda1) + (2*lambda2) - lambda3)/((3**0.5)*(lambda1 - lambda3))) # eq. 20a (Tape and Tape 2012)
     beta = np.arccos((lambda1+lambda2+lambda3)/((3**0.5)*((lambda1**2 + lambda2**2 + lambda3**2)**0.5))) # eq. 20b (Tape and Tape 2012)
     delta = (np.pi/2.) - beta # eq. 23 (Tape and Tape 2012)
@@ -1101,7 +1100,7 @@ def get_binned_MT_solutions_by_delta_gamma_dict(MTs_sample, MTp_sample):
     #return gamma_delta_binned_MT_store, bin_value_labels_delta, bin_value_labels_gamma, bins_delta_gamma, num_samples_in_bins_delta_gamma
     return bin_value_labels_delta, bin_value_labels_gamma, bins_delta_gamma, max_prob_bins_delta_gamma, num_samples_in_bins_delta_gamma
 
-def twoD_Gaussian((X, Y), amplitude, xo, yo, sigma_x, sigma_y, theta):
+def twoD_Gaussian(X, Y, amplitude, xo, yo, sigma_x, sigma_y, theta):
     """Function describing 2D Gaussian. Pass initial guesses for gaussian parameters. Returns 1D ravelled array describing 2D Gaussian function.
     Based on code: https://stackoverflow.com/questions/21566379/fitting-a-2d-gaussian-function-using-scipy-optimize-curve-fit-valueerror-and-m
     X, Y are 2D np grids (from np.meshgrid)."""
@@ -1127,13 +1126,13 @@ def fit_twoD_Gaussian(x, y, data, initial_guess_switch=False, initial_guess=(1,1
     # Fit Gaussian to data:
     data_ravelled = np.ravel(data)
     if initial_guess_switch:
-        print "Initial guess parameters for 2D gaussian fit:"
-        print initial_guess
+        print("Initial guess parameters for 2D gaussian fit:")
+        print(initial_guess)
         popt, pcov = opt.curve_fit(twoD_Gaussian, (X, Y), data_ravelled, p0=initial_guess)
     else:
         popt, pcov = opt.curve_fit(twoD_Gaussian, (X, Y), data_ravelled)
-    print "And final parameters derived:"
-    print popt
+    print("And final parameters derived:")
+    print(popt)
     
     # Get fitted data:
     data_fitted = twoD_Gaussian((X, Y), *popt) # Get 2D Gaussian
@@ -1158,7 +1157,7 @@ def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, figure_filename=
     bin_value_labels_delta, bin_value_labels_gamma, bins_delta_gamma, max_prob_bins_delta_gamma, num_samples_in_bins_delta_gamma = get_binned_MT_solutions_by_delta_gamma_dict(MTs_sample, MTp_sample)
     
     # And plot:
-    print "Plotting Lune with fitted Gaussian"
+    print("Plotting Lune with fitted Gaussian")
     # Set up figure:
     fig = plt.figure(figsize=(8,8))
     ax = fig.add_subplot(111)
@@ -1219,10 +1218,8 @@ def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, figure_filename=
                 Y_all.append(Y)
                 Z_all.append(Z)
                 c_all.append(bins_delta_gamma_normallised[i,j])
-        print i
     ax.scatter(Y_all,Z_all, c=c_all, cmap="inferno", alpha=0.6,s=50)
     
-
     # # Plot maximum location and associated contours associated with Guassian fit:
     # # Plot maximum location:
     # delta = max_bin_delta_gamma_values[0]
@@ -1277,7 +1274,6 @@ def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, figure_filename=
         plt.show()
     
     # # And return MT data at maximum (and mts within contour?!):
-    # print "And getting MT data at maximum of gaussian to return (and mts within contour?!)"
     # # Get all solutions associated with bins inside contour on Lune plot:
     # gamma_delta_binned_MT_store = get_binned_MT_solutions_by_delta_gamma_dict(MTs_sample) # Returns dictionary of all MTs binned by gamma, delta value
     # # And get all values associated with gaussian maximum on Lune plot:
@@ -1493,13 +1489,13 @@ def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_sw
     """
     
     # Plot for inversion:
-    print "Plotting data for inversion"
+    print("Plotting data for inversion")
     
     # Get inversion filenames:
     MT_data_filename = datadir+"/"+event_uid+"_FW_"+inversion_type+".pkl" #"./python_FW_outputs/20171222022435216400_FW_DC.pkl"
     MT_waveforms_data_filename = datadir+"/"+event_uid+"_FW_"+inversion_type+".wfs"  #"./python_FW_outputs/20171222022435216400_FW_DC.wfs"
 
-    print "Processing data for:", MT_data_filename
+    print("Processing data for:", MT_data_filename)
 
     # Import MT data and associated waveforms:
     uid, MTp, MTp_absolute, MTs, stations = load_MT_dict_from_file(MT_data_filename)
@@ -1526,20 +1522,20 @@ def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_sw
             amp_ratio_direct_vs_indirect_S = MT_max_prob[-2] # Proportion of amplitude that is from direct vs indirect radiation
             amp_ratio_direct_vs_indirect_surface = MT_max_prob[-1] # Proportion of amplitude that is from direct vs indirect radiation
             MT_max_prob = MT_max_prob_tmp
-            print "----------------------"
-            print " "
-            print "Amplitude ratios of direct to indirect radiation (P, S, surface):", amp_ratio_direct_vs_indirect_P, amp_ratio_direct_vs_indirect_S, amp_ratio_direct_vs_indirect_surface
-            print "(Note: Although gives values for all phases, only phases specified in original solution are actually relevent)."
-            print " "
-            print "----------------------"
+            print("----------------------")
+            print(" ")
+            print("Amplitude ratios of direct to indirect radiation (P, S, surface):", amp_ratio_direct_vs_indirect_P, amp_ratio_direct_vs_indirect_S, amp_ratio_direct_vs_indirect_surface)
+            print("(Note: Although gives values for all phases, only phases specified in original solution are actually relevent).")
+            print(" ")
+            print("----------------------")
         else:
             amp_ratio_direct_vs_indirect = MT_max_prob[-1] # Proportion of amplitude that is from direct vs indirect radiation
             MT_max_prob = MT_max_prob_tmp
-            print "----------------------"
-            print " "
-            print "Amplitude ratio of direct to indirect radiation:", amp_ratio_direct_vs_indirect
-            print " "
-            print "----------------------"
+            print("----------------------")
+            print(" ")
+            print("Amplitude ratio of direct to indirect radiation:", amp_ratio_direct_vs_indirect)
+            print(" ")
+            print("----------------------")
     
     if inversion_type == "full_mt" or inversion_type == "full_mt_Lune_samp":
         inversion_type = "unconstrained"
@@ -1664,13 +1660,13 @@ def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_sw
         if plot_Lune_switch:
             plot_Lune(MTs[0:6,:], MTp_for_Lune, six_MT_max_prob=radiation_pattern_MT, frac_to_sample=0.1, figure_filename="Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_Lune.png")
     
-    print "Full MT (max prob.):"
-    print full_MT_max_prob
-    print "(For plotting radiation pattern)"
+    print("Full MT (max prob.):")
+    print(full_MT_max_prob)
+    print("(For plotting radiation pattern)")
     
-    print "Finished processing unconstrained inversion data for:", MT_data_filename
+    print("Finished processing unconstrained inversion data for:", MT_data_filename)
     
-    print "Finished"
+    print("Finished")
     
 
 # ------------------------------------------------ End of specifing module functions ------------------------------------------------

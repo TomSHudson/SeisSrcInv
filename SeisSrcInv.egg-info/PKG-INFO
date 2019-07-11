@@ -1,10 +1,10 @@
 Metadata-Version: 2.1
 Name: SeisSrcInv
-Version: 0.0.3
+Version: 0.0.4
 Summary: A full waveform seismic source mechanism inversion package
 Home-page: https://github.com/TomSHudson/SeisSrcInv
 Author: Tom Hudson
-Author-email: tsh37@cam.ac.uk
+Author-email: tsh37@alumni.cam.ac.uk
 License: UNKNOWN
 Description: # SeisSrcInv
         
@@ -21,10 +21,13 @@ Description: # SeisSrcInv
         
         ## Usage:
         For example of usage, see example.ipynb jupyter-notebook or example.pdf. The jupyter-notebook should run once SeisSrcInv is installed.
+        For other optional arguments try:
+        help(SeisSrcInv.inversion.run)
+        help(SeisSrcInv.plot.run)
         
 Platform: UNKNOWN
 Classifier: Development Status :: 4 - Beta
-Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
 Description-Content-Type: text/markdown

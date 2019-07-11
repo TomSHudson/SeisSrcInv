@@ -1,4 +1,5 @@
 README.md
+setup.cfg
 setup.py
 SeisSrcInv/__init__.py
 SeisSrcInv/inversion.py
