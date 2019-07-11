@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: SeisSrcInv
-Version: 0.0.4
+Version: 0.0.5
 Summary: A full waveform seismic source mechanism inversion package
 Home-page: https://github.com/TomSHudson/SeisSrcInv
 Author: Tom Hudson
