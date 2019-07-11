@@ -977,7 +977,7 @@ def get_event_uid_and_station_data_MTFIT_FORMAT_from_nonlinloc_hyp_file(nlloc_hy
     # And create stations array:
     stations = []
     for i in range(len(arrival_times_dict['azi_takeoff_angles'])):
-        station = arrival_times_dict['azi_takeoff_angles'].keys()[i]
+        station = list(arrival_times_dict['azi_takeoff_angles'].keys())[i]
         azi = arrival_times_dict['azi_takeoff_angles'][station]["P_azimuth_sta_to_event"]
         toa = arrival_times_dict['azi_takeoff_angles'][station]["P_toa_sta_inclination"]
         pol = 0 # Assign zero polarity, as not needed for full waveform

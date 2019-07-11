@@ -749,10 +749,10 @@ def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern
             station_name = station[0][0]
             # Get params for station:
             # If from MTFIT analysis:
-            if str(type(station[1][0][0])) == "<type 'numpy.float64'>":
-                azi=(station[1][0][0]/360.)*2.*np.pi + np.pi
-                toa=(station[2][0][0]/360.)*2.*np.pi
-                polarity = station[3][0][0]
+            if isinstance(station[1][0], float):
+                azi=(station[1][0]/360.)*2.*np.pi + np.pi
+                toa=(station[2][0]/360.)*2.*np.pi
+                polarity = station[3][0]
             # Else if from python FW inversion:
             else:
                 azi=(float(station[1][0])/360.)*2.*np.pi + np.pi
@@ -805,7 +805,7 @@ def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern
                 real_wfs_current_station = []
                 synth_wfs_current_station = []
                 wfs_component_labels_current_station = []
-                for wfs_key in wfs_dict.keys():
+                for wfs_key in list(wfs_dict.keys()):
                     if station_name in wfs_key:
                         real_wfs_current_station.append(wfs_dict[wfs_key]['real_wf']) # Append current real waveforms to wfs for current station
                         synth_wfs_current_station.append(wfs_dict[wfs_key]['synth_wf']) # Append current synth waveforms to wfs for current station
@@ -1365,7 +1365,7 @@ def plot_wfs_of_most_likely_soln_separate_plot(stations, wfs_dict, plot_fname):
         real_wfs_current_station = []
         synth_wfs_current_station = []
         wfs_component_labels_current_station = []
-        for wfs_key in wfs_dict.keys():
+        for wfs_key in list(wfs_dict.keys()):
             if station_name in wfs_key:
                 real_wfs_current_station.append(wfs_dict[wfs_key]['real_wf']) # Append current real waveforms to wfs for current station
                 synth_wfs_current_station.append(wfs_dict[wfs_key]['synth_wf']) # Append current synth waveforms to wfs for current station

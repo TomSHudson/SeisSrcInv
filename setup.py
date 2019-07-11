@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="SeisSrcInv",
-    version="0.0.5",
+    version="0.0.7",
     author="Tom Hudson",
     author_email="tsh37@alumni.cam.ac.uk",
     description="A full waveform seismic source mechanism inversion package",
