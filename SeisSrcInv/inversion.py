@@ -35,6 +35,7 @@ import pickle
 import random # For entirely random number generation
 import math
 import multiprocessing
+from numba import jit
 
 
 # Specify parameters:
@@ -65,7 +66,7 @@ if __name__ == "__main__":
     green_func_phase_labels = ['P','P','P','P','P','P','P','S','S','S','S','S','S','S','S','S','S','S','S','S','S'] # List of same length as data_labels, to specify the phase associated with each greens function. Can be "P", "S", or "surface". If this parameter is specified then will use multiple greens function ratios.
     invert_for_relative_magnitudes_switch = True # If True, inverts for relative magnitude. Notes: Must have perform_normallised_waveform_inversion=False; Will then vary magnitude by 10^lower range to upper range, specified by rel_exp_mag_range. (Default is False)
     rel_exp_mag_range = [-3.0, 3.0] # Values of lower and upper exponent for 10^x , e.g. [-3.0,3.0] would be relative magnitude range from 10^-3 to 10^3 (Default is [0.0,0.0])
-
+    auto_shift_for_best_fit = True #  If True, performs automatic shift for fit of observational data to model. Therefore, if this is specified, one does not need to align the real and modelled data before inputing. (Default is True) (bool)
 
 
 # ------------------- Define various functions used in script -------------------
@@ -192,6 +193,35 @@ def get_overall_real_and_green_func_data(datadir, real_data_fnames, MT_green_fun
     # And convert to SI units (see note in script header):
     green_func_array = green_func_array*(10**7)
     return real_data_array, green_func_array
+
+
+@jit(nopython=True)
+def cross_corr_data_with_template(data, template):
+    """Function performing cross-correlation between long waveform data (data) and template.
+    Performs normalized cross-correlation in fourier domain (since it is faster).
+    Returns normallised correlation coefficients."""
+    n_samp_template = len(template)
+    n_iters = len(data) - n_samp_template + 1
+    ncc = np.zeros(n_iters)
+    for i in range(len(ncc)):
+        ncc[i] = np.sum(data[i:n_samp_template+i] * template / (np.std(data[i:n_samp_template+i]) * np.std(template))) / n_samp_template
+    return ncc
+
+@jit(nopython=True)
+def find_opt_shift_via_cross_corr_data_with_template(data, template, max_shift=100):
+    """Function performing cross-correlation between data and template, which must be the 
+    same length.Performs normalized cross-correlation in fourier domain (since it is faster).
+    Returns the optimal shift to align data and template (between +/- max_shift)."""
+    n_samp_template = len(template)
+    poss_shift_idxs = np.arange(-max_shift, max_shift+1, 1)
+    n_iters = len(poss_shift_idxs)
+    ncc = np.zeros(n_iters)
+    for i in range(len(poss_shift_idxs)):
+        ncc[i] = np.sum(data * np.roll(template, poss_shift_idxs[i]) / (np.std(data) * np.std(template))) / n_samp_template
+    ncc[ncc<0] = 0.
+    opt_shift_idx = poss_shift_idxs[np.argmax(ncc)]
+    return opt_shift_idx
+
 
 def get_full_MT_array(mt):
     full_MT = np.array( ([[mt[0],mt[3]/np.sqrt(2.),mt[4]/np.sqrt(2.)],
@@ -552,18 +582,6 @@ def variance_reduction(data, synth):
     if VR < 0.:
         VR = 0.
     return VR
-
-def variance_reduction_normallised(data, synth):
-    """Function to perform variance reduction of data and synthetic. Based on Eq. 2.1 in Walter 2009 thesis. Originally from Templeton and Dreger 2006.
-    (When using all data in flattened array into this function, this is approximately equivilent to L2 norm (e.g. Song2011))."""
-    ###VR = 1. - (np.sum(np.square(data-synth))/(len(data)*np.max(np.absolute(np.square(data-synth)))))
-    VR = 1. - (np.sum(np.square(data-synth))/np.square(np.max(np.absolute(data))+np.max(np.absolute(synth)))*len(data)) # Calculate variation reduction, altered to give value between 0 and 1 (data and synth must be normallised)
-    ###VR = 1. - (np.sum(np.square(data-synth))/np.sum(np.square(data))) # Calculate variance reduction (according to Templeton and Dreger 2006, Walter 2009 thesis) # Needs <0. filter (as below)
-    # And account for amplitude difference error (between synth and data) giving negative results:
-    # Note: This is artificial! Can avoid by setting normalisation of data before input.
-    # if VR < 0.:
-    #     VR = 0.
-    return VR
     
 def cross_corr_comparison(data, synth):
     """Function performing cross-correlation between long waveform data (data) and template.
@@ -615,11 +633,18 @@ def gaussian_comparison(data, synth):
     gau_prob = np.exp(-1*np.sum(((data-synth)**2)/(2*(data_uncert**2)))) # Find gaussian based probability (between zero and 1)
     return gau_prob
 
-def compare_synth_to_real_waveforms(real_data_array, synth_waveforms_array, comparison_metric, perform_normallised_waveform_inversion=True, compare_all_waveforms_simultaneously=True):
+def compare_synth_to_real_waveforms(real_data_array, synth_waveforms_array, comparison_metric, perform_normallised_waveform_inversion=True, compare_all_waveforms_simultaneously=True, auto_shift_for_best_fit=True):
     """Function to compare synthetic to real waveforms via specified comparison metrix, and can do normallised if specified and can compare all waveforms together, or separately then equal weight average combine."""
     # Note: Do for all stations combined!
     # Note: Undertaken currently on normalised real and synthetic data!
     synth_waveform_curr_sample = synth_waveforms_array
+
+    # Perform normallised cross-correlation shift to find very best fit automatically, if specified:
+    if auto_shift_for_best_fit:
+        for l in range(len(real_data_array[:,0])):
+            # Get cross-correlation values:
+            shift_idx_curr = find_opt_shift_via_cross_corr_data_with_template(real_data_array[l,:], synth_waveforms_array[l,:], max_shift=100)
+            synth_waveforms_array[l,:] = np.roll(synth_waveforms_array[l,:], shift_idx_curr)  
 
     # Compare waveforms for individual recievers/components together, as 1 1D array (if compare_all_waveforms_simultaneously=True)
     if compare_all_waveforms_simultaneously:
@@ -717,7 +742,7 @@ def compare_synth_to_real_waveforms(real_data_array, synth_waveforms_array, comp
     
     return similarity_curr_sample
 
-def PARALLEL_worker_mc_inv(procnum, num_samples_per_processor, inversion_type, M_amplitude, green_func_array, real_data_array, comparison_metric, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, return_dict_MTs, return_dict_similarity_values_all_samples, return_dict_MT_single_force_rel_amps, return_dict_medium_1_medium_2_rel_amp_ratios, invert_for_ratio_of_multiple_media_greens_func_switch, green_func_phase_labels, num_phase_types_for_media_ratios, invert_for_relative_magnitudes_switch=False, rel_exp_mag_range=[1.,1.]):
+def PARALLEL_worker_mc_inv(procnum, num_samples_per_processor, inversion_type, M_amplitude, green_func_array, real_data_array, comparison_metric, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, return_dict_MTs, return_dict_similarity_values_all_samples, return_dict_MT_single_force_rel_amps, return_dict_medium_1_medium_2_rel_amp_ratios, invert_for_ratio_of_multiple_media_greens_func_switch, green_func_phase_labels, num_phase_types_for_media_ratios, invert_for_relative_magnitudes_switch=False, rel_exp_mag_range=[1.,1.], auto_shift_for_best_fit=True):
     """Parallel worker function for perform_monte_carlo_sampled_waveform_inversion function."""
     print("Processing for process:", procnum, "for ", num_samples_per_processor, "samples.")
     
@@ -793,7 +818,7 @@ def PARALLEL_worker_mc_inv(procnum, num_samples_per_processor, inversion_type, M
         synth_waveform_curr_sample = forward_model(green_func_array, MT_curr_sample) # Note: Greens functions must be of similar amplitude units going into here...
     
         # 5. Compare real data to synthetic waveform (using variance reduction or other comparison metric), to assign probability that data matches current model:
-        similarity_curr_sample = compare_synth_to_real_waveforms(real_data_array, synth_waveform_curr_sample, comparison_metric, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously)      
+        similarity_curr_sample = compare_synth_to_real_waveforms(real_data_array, synth_waveform_curr_sample, comparison_metric, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, auto_shift_for_best_fit)      
             
         # 6. Append results to data store:
         tmp_MTs[:,i] = MT_curr_sample[:,0]
@@ -824,7 +849,7 @@ def PARALLEL_worker_mc_inv(procnum, num_samples_per_processor, inversion_type, M
         return_dict_medium_1_medium_2_rel_amp_ratios[procnum] = tmp_medium_1_medium_2_rel_amp_ratios
     print("Finished processing process:", procnum, "for ", num_samples_per_processor, "samples.")
 
-def perform_monte_carlo_sampled_waveform_inversion(real_data_array, green_func_array, num_samples=1000, M_amplitude=1.,inversion_type="full_mt",comparison_metric="CC",perform_normallised_waveform_inversion=True, compare_all_waveforms_simultaneously=True, num_processors=1, return_absolute_similarity_values_switch=False, invert_for_ratio_of_multiple_media_greens_func_switch=False, green_func_phase_labels=[], num_phase_types_for_media_ratios=0, invert_for_relative_magnitudes_switch=False, rel_exp_mag_range=[1.,1.]):
+def perform_monte_carlo_sampled_waveform_inversion(real_data_array, green_func_array, num_samples=1000, M_amplitude=1.,inversion_type="full_mt",comparison_metric="CC",perform_normallised_waveform_inversion=True, compare_all_waveforms_simultaneously=True, num_processors=1, return_absolute_similarity_values_switch=False, invert_for_ratio_of_multiple_media_greens_func_switch=False, green_func_phase_labels=[], num_phase_types_for_media_ratios=0, invert_for_relative_magnitudes_switch=False, rel_exp_mag_range=[1.,1.], auto_shift_for_best_fit=True):
     """Function to use random Monte Carlo sampling of the moment tensor to derive a best fit for the moment tensor to the data.
     Notes: Currently does this using M_amplitude (as makes comparison of data realistic) (alternative could be to normalise real and synthetic data).
     Inversion type can be: full_mt, DC or single_force. If it is full_mt or DC, must give 6 greens functions in greeen_func_array. If it is a single force, must use single force greens functions (3).
@@ -863,7 +888,7 @@ def perform_monte_carlo_sampled_waveform_inversion(real_data_array, green_func_a
     num_samples_per_processor = int(num_samples/num_processors)
     # Loop over processes doing smapling:
     for procnum in range(num_processors):
-        p = multiprocessing.Process(target=PARALLEL_worker_mc_inv, args=(procnum, num_samples_per_processor, inversion_type, M_amplitude, green_func_array, real_data_array, comparison_metric, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, return_dict_MTs, return_dict_similarity_values_all_samples, return_dict_MT_single_force_rel_amps, return_dict_medium_1_medium_2_rel_amp_ratios, invert_for_ratio_of_multiple_media_greens_func_switch, green_func_phase_labels, num_phase_types_for_media_ratios, invert_for_relative_magnitudes_switch, rel_exp_mag_range))
+        p = multiprocessing.Process(target=PARALLEL_worker_mc_inv, args=(procnum, num_samples_per_processor, inversion_type, M_amplitude, green_func_array, real_data_array, comparison_metric, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, return_dict_MTs, return_dict_similarity_values_all_samples, return_dict_MT_single_force_rel_amps, return_dict_medium_1_medium_2_rel_amp_ratios, invert_for_ratio_of_multiple_media_greens_func_switch, green_func_phase_labels, num_phase_types_for_media_ratios, invert_for_relative_magnitudes_switch, rel_exp_mag_range, auto_shift_for_best_fit))
         jobs.append(p) # Append process to list so that can join together later
         p.start() # Start process
     # Join processes back together:
@@ -1075,7 +1100,7 @@ def save_specific_waveforms_to_file(real_data_array, synth_data_array, data_labe
     print("Saving FW inversion to file:", out_fname)
     pickle.dump(out_wf_dict, open(out_fname, "wb"))
     
-def run_multi_medium_inversion(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_green_func_fnames, data_labels, inversion_type, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, num_samples, comparison_metric, manual_indices_time_shift_MT, manual_indices_time_shift_SF, nlloc_hyp_filename, cut_phase_start_vals=[], cut_phase_length=0, plot_switch=False, num_processors=1, set_pre_time_shift_values_to_zero_switch=True, only_save_non_zero_solns_switch=False, return_absolute_similarity_values_switch=False, invert_for_ratio_of_multiple_media_greens_func_switch=False, green_func_fnames_split_index=0, green_func_phase_labels=[], invert_for_relative_magnitudes_switch=False, rel_exp_mag_range=[1.,1.]):
+def run_multi_medium_inversion(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_green_func_fnames, data_labels, inversion_type, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, num_samples, comparison_metric, manual_indices_time_shift_MT, manual_indices_time_shift_SF, nlloc_hyp_filename, cut_phase_start_vals=[], cut_phase_length=0, plot_switch=False, num_processors=1, set_pre_time_shift_values_to_zero_switch=True, only_save_non_zero_solns_switch=False, return_absolute_similarity_values_switch=False, invert_for_ratio_of_multiple_media_greens_func_switch=False, green_func_fnames_split_index=0, green_func_phase_labels=[], invert_for_relative_magnitudes_switch=False, rel_exp_mag_range=[1.,1.], auto_shift_for_best_fit=True):
     """Function to run the inversion script."""
     
     # Load input data (completely, for specific inversion type):
@@ -1114,7 +1139,7 @@ def run_multi_medium_inversion(datadir, outdir, real_data_fnames, MT_green_func_
     # And save least squares output:
     # Set output arrays to equal least squares output:    
     MTs = M
-    similarity_curr_sample = compare_synth_to_real_waveforms(real_data_array, synth_forward_model_result_array, comparison_metric, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously)      
+    similarity_curr_sample = compare_synth_to_real_waveforms(real_data_array, synth_forward_model_result_array, comparison_metric, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, auto_shift_for_best_fit)      
     MTp = np.array([similarity_curr_sample])
     # And save data to MTFIT style file:
     outdir_least_squares = outdir+"/least_squares_result"
@@ -1129,7 +1154,7 @@ def run_multi_medium_inversion(datadir, outdir, real_data_fnames, MT_green_func_
 
 
     # And do Monte Carlo random sampling to obtain PDF of moment tensor:
-    MTs, MTp, MTp_absolute = perform_monte_carlo_sampled_waveform_inversion(real_data_array, green_func_array, num_samples, M_amplitude=M_amplitude,inversion_type=inversion_type, comparison_metric=comparison_metric, perform_normallised_waveform_inversion=perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously=compare_all_waveforms_simultaneously, num_processors=num_processors, return_absolute_similarity_values_switch=return_absolute_similarity_values_switch, invert_for_ratio_of_multiple_media_greens_func_switch=invert_for_ratio_of_multiple_media_greens_func_switch, green_func_phase_labels=green_func_phase_labels, num_phase_types_for_media_ratios=num_phase_types_for_media_ratios, invert_for_relative_magnitudes_switch=invert_for_relative_magnitudes_switch, rel_exp_mag_range=rel_exp_mag_range)
+    MTs, MTp, MTp_absolute = perform_monte_carlo_sampled_waveform_inversion(real_data_array, green_func_array, num_samples, M_amplitude=M_amplitude,inversion_type=inversion_type, comparison_metric=comparison_metric, perform_normallised_waveform_inversion=perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously=compare_all_waveforms_simultaneously, num_processors=num_processors, return_absolute_similarity_values_switch=return_absolute_similarity_values_switch, invert_for_ratio_of_multiple_media_greens_func_switch=invert_for_ratio_of_multiple_media_greens_func_switch, green_func_phase_labels=green_func_phase_labels, num_phase_types_for_media_ratios=num_phase_types_for_media_ratios, invert_for_relative_magnitudes_switch=invert_for_relative_magnitudes_switch, rel_exp_mag_range=rel_exp_mag_range, auto_shift_for_best_fit=auto_shift_for_best_fit)
 
     # Check that probability of output is non-zero:
     if math.isnan(MTp[0]):
@@ -1199,7 +1224,7 @@ def run_multi_medium_inversion(datadir, outdir, real_data_fnames, MT_green_func_
     print("Finished")
         
     
-def run(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_green_func_fnames, data_labels, inversion_type, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, num_samples, comparison_metric, manual_indices_time_shift_MT, manual_indices_time_shift_SF, nlloc_hyp_filename, cut_phase_start_vals=[], cut_phase_length=0, plot_switch=False, num_processors=1, set_pre_time_shift_values_to_zero_switch=True, only_save_non_zero_solns_switch=False, return_absolute_similarity_values_switch=False, invert_for_ratio_of_multiple_media_greens_func_switch=False, green_func_fnames_split_index=0, green_func_phase_labels=[], invert_for_relative_magnitudes_switch=False, rel_exp_mag_range=[1.0,1.0]):
+def run(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_green_func_fnames, data_labels, inversion_type, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, num_samples, comparison_metric, manual_indices_time_shift_MT, manual_indices_time_shift_SF, nlloc_hyp_filename, cut_phase_start_vals=[], cut_phase_length=0, plot_switch=False, num_processors=1, set_pre_time_shift_values_to_zero_switch=True, only_save_non_zero_solns_switch=False, return_absolute_similarity_values_switch=False, invert_for_ratio_of_multiple_media_greens_func_switch=False, green_func_fnames_split_index=0, green_func_phase_labels=[], invert_for_relative_magnitudes_switch=False, rel_exp_mag_range=[1.0,1.0], auto_shift_for_best_fit=True):
     """Function to run the inversion script.
     ------------------ Inputs ------------------
     Required arguments:
@@ -1231,6 +1256,7 @@ def run(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_gr
     green_func_phase_labels - List of same length as data_labels, to specify the phase associated with each greens function. Can be "P", "S", or "surface". If this parameter is specified then will use multiple greens function ratios.
     invert_for_relative_magnitudes_switch - If True, inverts for relative magnitude. Notes: Must have perform_normallised_waveform_inversion=False; Will then vary magnitude by 10^lower range to upper range, specified by rel_exp_mag_range. (Default is False)
     rel_exp_mag_range - Values of lower and upper exponent for 10^x , e.g. [-3.0,3.0] would be relative magnitude range from 10^-3 to 10^3 (Default is [0.0,0.0]) (used if invert_for_relative_magnitudes_switch is set to True) (type: list of 2 x int)
+    auto_shift_for_best_fit - If True, performs automatic shift for fit of observational data to model. Therefore, if this is specified, one does not need to align the real and modelled data before inputing. (Default is True) (bool)
     
     ------------------ Outputs ------------------
     Returns:
@@ -1241,7 +1267,7 @@ def run(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_gr
     # Run specific multi medium inversion, if specified:
     if invert_for_ratio_of_multiple_media_greens_func_switch:
         # For muliple media greens functions:
-        run_multi_medium_inversion(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_green_func_fnames, data_labels, inversion_type, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, num_samples, comparison_metric, manual_indices_time_shift_MT, manual_indices_time_shift_SF, nlloc_hyp_filename, cut_phase_start_vals=cut_phase_start_vals, cut_phase_length=cut_phase_length, plot_switch=plot_switch, num_processors=num_processors, set_pre_time_shift_values_to_zero_switch=set_pre_time_shift_values_to_zero_switch, only_save_non_zero_solns_switch=only_save_non_zero_solns_switch, return_absolute_similarity_values_switch=return_absolute_similarity_values_switch, invert_for_ratio_of_multiple_media_greens_func_switch=invert_for_ratio_of_multiple_media_greens_func_switch, green_func_fnames_split_index=green_func_fnames_split_index, green_func_phase_labels=green_func_phase_labels)
+        run_multi_medium_inversion(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_green_func_fnames, data_labels, inversion_type, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, num_samples, comparison_metric, manual_indices_time_shift_MT, manual_indices_time_shift_SF, nlloc_hyp_filename, cut_phase_start_vals=cut_phase_start_vals, cut_phase_length=cut_phase_length, plot_switch=plot_switch, num_processors=num_processors, set_pre_time_shift_values_to_zero_switch=set_pre_time_shift_values_to_zero_switch, only_save_non_zero_solns_switch=only_save_non_zero_solns_switch, return_absolute_similarity_values_switch=return_absolute_similarity_values_switch, invert_for_ratio_of_multiple_media_greens_func_switch=invert_for_ratio_of_multiple_media_greens_func_switch, green_func_fnames_split_index=green_func_fnames_split_index, green_func_phase_labels=green_func_phase_labels, auto_shift_for_best_fit=auto_shift_for_best_fit)
     else:
         # Run for normal, single set of greens functions:
         
@@ -1262,7 +1288,7 @@ def run(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_gr
         # And save least squares output:
         # Set output arrays to equal least squares output:    
         MTs = M
-        similarity_curr_sample = compare_synth_to_real_waveforms(real_data_array, synth_forward_model_result_array, comparison_metric, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously)      
+        similarity_curr_sample = compare_synth_to_real_waveforms(real_data_array, synth_forward_model_result_array, comparison_metric, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, auto_shift_for_best_fit)      
         MTp = np.array([similarity_curr_sample])
         # And save data to MTFIT style file:
         outdir_least_squares = outdir+"/least_squares_result"
@@ -1275,9 +1301,8 @@ def run(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_gr
             synth_forward_model_most_likely_result_array = forward_model(green_func_array, MTs[:, np.where(MTp==np.max(MTp))[0][0]])
         save_specific_waveforms_to_file(real_data_array, synth_forward_model_most_likely_result_array, data_labels, nlloc_hyp_filename, inversion_type, outdir_least_squares)
     
-    
         # And do Monte Carlo random sampling to obtain PDF of moment tensor:
-        MTs, MTp, MTp_absolute = perform_monte_carlo_sampled_waveform_inversion(real_data_array, green_func_array, num_samples, M_amplitude=M_amplitude,inversion_type=inversion_type, comparison_metric=comparison_metric, perform_normallised_waveform_inversion=perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously=compare_all_waveforms_simultaneously, num_processors=num_processors, return_absolute_similarity_values_switch=return_absolute_similarity_values_switch, invert_for_relative_magnitudes_switch=invert_for_relative_magnitudes_switch, rel_exp_mag_range=rel_exp_mag_range)
+        MTs, MTp, MTp_absolute = perform_monte_carlo_sampled_waveform_inversion(real_data_array, green_func_array, num_samples, M_amplitude=M_amplitude,inversion_type=inversion_type, comparison_metric=comparison_metric, perform_normallised_waveform_inversion=perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously=compare_all_waveforms_simultaneously, num_processors=num_processors, return_absolute_similarity_values_switch=return_absolute_similarity_values_switch, invert_for_relative_magnitudes_switch=invert_for_relative_magnitudes_switch, rel_exp_mag_range=rel_exp_mag_range, auto_shift_for_best_fit=auto_shift_for_best_fit)
     
         # Check that probability of output is non-zero:
         if math.isnan(MTp[0]):
@@ -1314,5 +1339,5 @@ def run(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_gr
 # ------------------- Main script for running -------------------
 if __name__ == "__main__":
     # Run functions via main run function:
-    run(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_green_func_fnames, data_labels, inversion_type, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, num_samples, comparison_metric, manual_indices_time_shift_MT, manual_indices_time_shift_SF, nlloc_hyp_filename, cut_phase_start_vals, cut_phase_length, plot_switch, num_processors, set_pre_time_shift_values_to_zero_switch, only_save_non_zero_solns_switch, return_absolute_similarity_values_switch, invert_for_relative_magnitudes_switch, rel_exp_mag_range)
+    run(datadir, outdir, real_data_fnames, MT_green_func_fnames, single_force_green_func_fnames, data_labels, inversion_type, perform_normallised_waveform_inversion, compare_all_waveforms_simultaneously, num_samples, comparison_metric, manual_indices_time_shift_MT, manual_indices_time_shift_SF, nlloc_hyp_filename, cut_phase_start_vals, cut_phase_length, plot_switch, num_processors, set_pre_time_shift_values_to_zero_switch, only_save_non_zero_solns_switch, return_absolute_similarity_values_switch, invert_for_relative_magnitudes_switch, rel_exp_mag_range, auto_shift_for_best_fit)
 
