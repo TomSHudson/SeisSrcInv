@@ -104,7 +104,6 @@ def get_arrival_time_data_from_NLLoc_hyp_files(nlloc_hyp_filename):
                     station_current_azimuth_sta_to_event = 180. - (360. - station_current_azimuth_event_to_sta)
                 elif station_current_azimuth_event_to_sta <= 180.:
                     station_current_azimuth_sta_to_event = 360. - (180. - station_current_azimuth_event_to_sta)
-                station_current_toa_event_to_sta = float(PHASE_lines[i,24])
                 if station_current_toa_event_to_sta > 90.:
                     station_current_toa_sta_inclination = station_current_toa_event_to_sta - 90.
                 elif station_current_toa_event_to_sta <= 90.:
@@ -139,7 +138,7 @@ def rotate_ZRT_to_LQT(tr_z,tr_r,tr_t,back_azi,event_inclin_angle_at_station):
     return st_LQT
 
 
-def get_greens_functions_from_file(green_func_dir, dist_label, actual_waveform_comp, num_greens_func_samples, greens_func_comp_list, real_arrival_times_dict, high_pass_freq, low_pass_freq, convert_displacement_to_velocity, downsample_greens_func_factor):
+def get_greens_functions_from_file(green_func_dir, station, dist_label, actual_waveform_comp, num_greens_func_samples, greens_func_comp_list, real_arrival_times_dict, high_pass_freq, low_pass_freq, convert_displacement_to_velocity, downsample_greens_func_factor):
     """Function to get Greens functions from file."""
     # Create data store:
     green_func_array = np.zeros((num_greens_func_samples, len(greens_func_comp_list)), dtype=float)
@@ -150,8 +149,8 @@ def get_greens_functions_from_file(green_func_dir, dist_label, actual_waveform_c
         tr_z = obspy.read(glob.glob(green_func_dir+"/*"+dist_label+"*"+comp+".z")[0])[0]
         tr_r = obspy.read(glob.glob(green_func_dir+"/*"+dist_label+"*"+comp+".r")[0])[0]
         tr_t = obspy.read(glob.glob(green_func_dir+"/*"+dist_label+"*"+comp+".t")[0])[0]
-        back_azi = real_arrival_times_dict['azi_takeoff_angles'][stat]["P_azimuth_sta_to_event"]
-        event_inclin_angle_at_station = real_arrival_times_dict['azi_takeoff_angles'][stat]["P_toa_sta_inclination"]
+        back_azi = real_arrival_times_dict['azi_takeoff_angles'][station]["P_azimuth_sta_to_event"]
+        event_inclin_angle_at_station = real_arrival_times_dict['azi_takeoff_angles'][station]["P_toa_sta_inclination"]
         st_LQT = rotate_ZRT_to_LQT(tr_z,tr_r,tr_t,back_azi,event_inclin_angle_at_station)
         # And save:
         st_LQT.select(channel="HHL").write(green_func_dir+"/auto_created_"+dist_label+"___"+comp+"."+"l", format="SAC")
@@ -180,8 +179,11 @@ def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, 
     real_arrival_times_dict = get_arrival_time_data_from_NLLoc_hyp_files(real_event_nonlinloc_hyp_file)
     
     # Make outdir if not already made:
-    os.mkdir(outdir)
-    
+    try:
+        os.mkdir(outdir)
+    except FileExistsError:
+        print("")
+
     # Initialise data stores:
     # Greens functions and mseed:
     green_func_array_MT = np.zeros((num_greens_func_samples, len(comp_list_MT)), dtype=float)
@@ -201,13 +203,13 @@ def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, 
 
             # 1. Process modelled data:
             # 1.a. Process for MT components:
-            green_func_array_MT = get_greens_functions_from_file(green_func_dir, dist_label, actual_waveform_comp, num_greens_func_samples, comp_list_MT, real_arrival_times_dict, high_pass_freq, low_pass_freq, convert_displacement_to_velocity, downsample_greens_func_factor)
+            green_func_array_MT = get_greens_functions_from_file(green_func_dir, stat, dist_label, actual_waveform_comp, num_greens_func_samples, comp_list_MT, real_arrival_times_dict, high_pass_freq, low_pass_freq, convert_displacement_to_velocity, downsample_greens_func_factor)
             # And save Greens functions to file:
             np.savetxt(os.path.join(outdir, "green_func_array_MT_"+stat+"_"+actual_waveform_comp+".txt"), green_func_array_MT)
             print("Output file:", os.path.join(outdir, "green_func_array_MT_"+stat+"_"+actual_waveform_comp+".txt"))
     
             # 1.b. And process for single force components, if they exist:  
-            green_func_array_single_force = get_greens_functions_from_file(green_func_dir, dist_label, actual_waveform_comp, num_greens_func_samples, comp_list_single_force, real_arrival_times_dict, high_pass_freq, low_pass_freq, convert_displacement_to_velocity, downsample_greens_func_factor)
+            green_func_array_single_force = get_greens_functions_from_file(green_func_dir, stat, dist_label, actual_waveform_comp, num_greens_func_samples, comp_list_single_force, real_arrival_times_dict, high_pass_freq, low_pass_freq, convert_displacement_to_velocity, downsample_greens_func_factor)
             # And save Greens functions to file:
             np.savetxt(os.path.join(outdir, "green_func_array_single_force_"+stat+"_"+actual_waveform_comp+".txt"), green_func_array_single_force)
             print("Output file:", os.path.join(outdir, "green_func_array_single_force_"+stat+"_"+actual_waveform_comp+".txt"))
