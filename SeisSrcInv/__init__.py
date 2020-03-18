@@ -6,3 +6,4 @@ __author__ = "Tom Hudson"
 __email__ = "tsh37@alumni.cam.ac.uk"
 import SeisSrcInv.inversion
 import SeisSrcInv.plot
+import SeisSrcInv.prep_inv_input_data
