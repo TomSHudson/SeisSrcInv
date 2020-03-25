@@ -1495,7 +1495,10 @@ def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_ph
     # Get inversion filenames:
     MT_data_filename = os.path.join(datadir, event_uid+"_FW_"+inversion_type+".pkl")
     MT_waveforms_data_filename = os.path.join(datadir, event_uid+"_FW_"+inversion_type+".wfs")
-    os.mkdir(plot_outdir)
+    try:
+        os.mkdir(plot_outdir)
+    except FileExistsError:
+        print("")
 
     print("Processing data for:", MT_data_filename)
 
