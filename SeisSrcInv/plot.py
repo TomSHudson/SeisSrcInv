@@ -1465,7 +1465,7 @@ def plot_slip_vector_distribution(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0
         plt.show()
         
 
-def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_switch=True, plot_uncertainty_switch=False, plot_wfs_separately_switch=False, plot_multi_medium_greens_func_inv_switch=False, multi_medium_greens_func_inv_separate_phase_amp_ratios=False, plot_absolute_probability_switch=True, plot_wfs_on_focal_mech_switch=True, plot_max_prob_on_Lune_switch=False):
+def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_phase="P", plot_Lune_switch=True, plot_uncertainty_switch=False, plot_wfs_separately_switch=False, plot_multi_medium_greens_func_inv_switch=False, multi_medium_greens_func_inv_separate_phase_amp_ratios=False, plot_absolute_probability_switch=True, plot_wfs_on_focal_mech_switch=True, plot_max_prob_on_Lune_switch=False):
     """Function to run main script.
     ------------------ Inputs ------------------
     Required arguments:
@@ -1474,6 +1474,7 @@ def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_sw
     datadir - Path to where the inversion outputs are saved (type: str)
 
     Optional arguments:
+    plot_outdir - Path to where the inversion plot outputs are saved (default: plots) (type: str)
     radiation_MT_phase - Radiation phase to plot (= "P" or "S") (Defalt = "P") (type: str)
     plot_uncertainty_switch - If True, plots uncertainty in direction/orientation of focal mechanism solution (default is False) (type bool)
     plot_Lune_switch - If True, plots Lune (default is True) (type bool)
@@ -1484,7 +1485,7 @@ def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_sw
     plot_wfs_on_focal_mech_switch - If True, plots waveforms on focal mechanism plot (default is True) (type bool)
 
     ------------------ Outputs ------------------
-    Various outputs as .png files, saved to the local directory "Plots/"
+    Various outputs as .png files, saved to the directory specified (e.g. "plots/")
     
     """
     
@@ -1492,8 +1493,9 @@ def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_sw
     print("Plotting data for inversion")
     
     # Get inversion filenames:
-    MT_data_filename = datadir+"/"+event_uid+"_FW_"+inversion_type+".pkl" #"./python_FW_outputs/20171222022435216400_FW_DC.pkl"
-    MT_waveforms_data_filename = datadir+"/"+event_uid+"_FW_"+inversion_type+".wfs"  #"./python_FW_outputs/20171222022435216400_FW_DC.wfs"
+    MT_data_filename = os.path.join(datadir, event_uid+"_FW_"+inversion_type+".pkl")
+    MT_waveforms_data_filename = os.path.join(datadir, event_uid+"_FW_"+inversion_type+".wfs")
+    os.mkdir(plot_outdir)
 
     print("Processing data for:", MT_data_filename)
 
@@ -1507,7 +1509,6 @@ def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_sw
             MTp = MTp_absolute
     else:
         MTp_for_Lune = MTp.copy()
-    
     
     # Get most likely solution and plot:
     index_MT_max_prob = np.argmax(MTp) # Index of most likely MT solution
@@ -1545,15 +1546,15 @@ def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_sw
         MTs_to_plot = full_MT_max_prob #MTs_max_gau_loc
         radiation_pattern_MT = MT_max_prob # 6 moment tensor to plot radiation pattern for
         for plot_plane in ["EN","EZ","NZ"]:
-            figure_filename = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+".png"
+            figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+".png")
             plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern_MT=radiation_pattern_MT, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=1, inversion_type=inversion_type, radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch)
         # And plot waveforms separately (if specified):
         if plot_wfs_separately_switch:
-            plot_fname = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png"
+            plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png")
             plot_wfs_of_most_likely_soln_separate_plot(stations, wfs_dict, plot_fname)
         # And plot Lune for solution:
         if plot_Lune_switch:
-            plot_Lune(MTs, MTp_for_Lune, six_MT_max_prob=radiation_pattern_MT, frac_to_sample=1.0, figure_filename="Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_Lune.png", plot_max_prob_on_Lune=plot_max_prob_on_Lune_switch)
+            plot_Lune(MTs, MTp_for_Lune, six_MT_max_prob=radiation_pattern_MT, frac_to_sample=1.0, figure_filename=os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_Lune.png"), plot_max_prob_on_Lune=plot_max_prob_on_Lune_switch)
         ###plot_slip_vector_distribution(MTs, MTp, six_MT_max_prob=MT_max_prob, frac_to_sample=0.01, figure_filename="Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_slip_vector_dist.png")
         
         
@@ -1564,7 +1565,7 @@ def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_sw
         MTs_to_plot = full_MT_max_prob #MTs_max_gau_loc
         radiation_pattern_MT = MT_max_prob # 6 moment tensor to plot radiation pattern for
         for plot_plane in ["EN","EZ","NZ"]:
-            figure_filename = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+".png"
+            figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+".png")
             plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern_MT=radiation_pattern_MT, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=1, inversion_type=inversion_type, radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch)
         # And plot waveforms separately (if specified):
         if plot_wfs_separately_switch:
@@ -1577,11 +1578,11 @@ def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_sw
         MTs_to_plot = full_MT_max_prob #MTs_max_gau_loc
         radiation_pattern_MT = MT_max_prob # 6 moment tensor to plot radiation pattern for
         for plot_plane in ["EN","EZ","NZ"]:
-            figure_filename = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+".png"
+            figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+".png")
             plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern_MT=radiation_pattern_MT, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=1, inversion_type=inversion_type, radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch)
         # And plot waveforms separately (if specified):
         if plot_wfs_separately_switch:
-            plot_fname = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png"
+            plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png")
             plot_wfs_of_most_likely_soln_separate_plot(stations, wfs_dict, plot_fname)
     
     elif inversion_type == "DC_single_force_couple":
@@ -1591,16 +1592,16 @@ def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_sw
         amp_prop_DC = MT_max_prob[9] # Proportion of amplitude that is DC
         # Plot MT solutions and radiation pattern of most likely on sphere:
         for plot_plane in ["EN","EZ","NZ"]:
-            figure_filename = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_DC_component.png"
+            figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_DC_component.png")
             plot_full_waveform_result_beachball(full_MT_max_prob, wfs_dict, radiation_pattern_MT=radiation_pattern_MT, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=1, inversion_type="DC", radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch)
-            figure_filename = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_SF_component.png"
+            figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_SF_component.png")
             plot_full_waveform_result_beachball(single_force_vector_max_prob, wfs_dict, radiation_pattern_MT=single_force_vector_max_prob, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=1, inversion_type="single_force", radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch)
         # And plot probability distribution for DC vs. single force:
-        figure_filename = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+"DC_vs_SF_prob_dist.png"
+        figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+"DC_vs_SF_prob_dist.png")
         plot_prob_distribution_DC_vs_single_force(MTs, MTp, figure_filename=figure_filename)
         # And plot waveforms separately (if specified):
         if plot_wfs_separately_switch:
-            plot_fname = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png"
+            plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png")
             plot_wfs_of_most_likely_soln_separate_plot(stations, wfs_dict, plot_fname)
     
     elif inversion_type == "DC_single_force_no_coupling":
@@ -1610,16 +1611,16 @@ def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_sw
         amp_prop_DC = MT_max_prob[9] # Proportion of amplitude that is DC
         # Plot MT solutions and radiation pattern of most likely on sphere:
         for plot_plane in ["EN","EZ","NZ"]:
-            figure_filename = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_DC_component.png"
+            figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_DC_component.png")
             plot_full_waveform_result_beachball(full_MT_max_prob, wfs_dict, radiation_pattern_MT=radiation_pattern_MT, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=1, inversion_type="DC", radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch)
-            figure_filename = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_SF_component.png"
+            figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_SF_component.png")
             plot_full_waveform_result_beachball(single_force_vector_max_prob, wfs_dict, radiation_pattern_MT=single_force_vector_max_prob, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=1, inversion_type="single_force", radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch)
         # And plot probability distribution for DC vs. single force:
-        figure_filename = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+"DC_vs_SF_prob_dist.png"
+        figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+"DC_vs_SF_prob_dist.png")
         plot_prob_distribution_DC_vs_single_force(MTs, MTp, figure_filename=figure_filename)
         # And plot waveforms separately (if specified):
         if plot_wfs_separately_switch:
-            plot_fname = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png"
+            plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png")
             plot_wfs_of_most_likely_soln_separate_plot(stations, wfs_dict, plot_fname)
     
     elif inversion_type == "DC_crack_couple":
@@ -1628,15 +1629,15 @@ def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_sw
         amp_prop_DC = MT_max_prob[-1] # Proportion of amplitude that is DC
         # Plot MT solutions and radiation pattern of most likely on sphere:
         for plot_plane in ["EN","EZ","NZ"]:
-            figure_filename = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+".png"
+            figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+".png")
             plot_full_waveform_result_beachball(full_MT_max_prob, wfs_dict, radiation_pattern_MT=radiation_pattern_MT, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=1, inversion_type="unconstrained", radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch)
         # And plot waveforms separately (if specified):
         if plot_wfs_separately_switch:
-            plot_fname = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png"
+            plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png")
             plot_wfs_of_most_likely_soln_separate_plot(stations, wfs_dict, plot_fname)
         # And plot Lune for solution:
         if plot_Lune_switch:
-            plot_Lune(MTs[0:6,:], MTp_for_Lune, six_MT_max_prob=radiation_pattern_MT, frac_to_sample=0.1, figure_filename="Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_Lune.png")    
+            plot_Lune(MTs[0:6,:], MTp_for_Lune, six_MT_max_prob=radiation_pattern_MT, frac_to_sample=0.1, figure_filename=os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_Lune.png")   ) 
         
     elif inversion_type == "single_force_crack_no_coupling":
         full_MT_max_prob = get_full_MT_array(MT_max_prob[0:6])
@@ -1645,20 +1646,20 @@ def run(inversion_type, event_uid, datadir, radiation_MT_phase="P", plot_Lune_sw
         amp_prop_SF = MT_max_prob[9] # Proportion of amplitude that is DC
         # Plot MT solutions and radiation pattern of most likely on sphere:
         for plot_plane in ["EN","EZ","NZ"]:
-            figure_filename = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_crack_component.png"
+            figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_crack_component.png")
             plot_full_waveform_result_beachball(full_MT_max_prob, wfs_dict, radiation_pattern_MT=radiation_pattern_MT, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=1, inversion_type="unconstrained", radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch)
-            figure_filename = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_SF_component.png"
+            figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_SF_component.png")
             plot_full_waveform_result_beachball(single_force_vector_max_prob, wfs_dict, radiation_pattern_MT=single_force_vector_max_prob, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=1, inversion_type="single_force", radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch)
         # And plot probability distribution for DC vs. single force:
-        figure_filename = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+"crack_vs_SF_prob_dist.png"
+        figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+"crack_vs_SF_prob_dist.png")
         plot_prob_distribution_DC_vs_single_force(MTs, MTp, figure_filename=figure_filename, inversion_type=inversion_type)
         # And plot waveforms separately (if specified):
         if plot_wfs_separately_switch:
-            plot_fname = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png"
+            plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png")
             plot_wfs_of_most_likely_soln_separate_plot(stations, wfs_dict, plot_fname)
         # And plot Lune for solution:
         if plot_Lune_switch:
-            plot_Lune(MTs[0:6,:], MTp_for_Lune, six_MT_max_prob=radiation_pattern_MT, frac_to_sample=0.1, figure_filename="Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_Lune.png")
+            plot_Lune(MTs[0:6,:], MTp_for_Lune, six_MT_max_prob=radiation_pattern_MT, frac_to_sample=0.1, figure_filename=os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+"_Lune.png"))
     
     print("Full MT (max prob.):")
     print(full_MT_max_prob)
