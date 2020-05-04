@@ -146,19 +146,19 @@ def get_greens_functions_from_file(green_func_dir, station, dist_label, actual_w
     for j in range(len(greens_func_comp_list)):
         comp = greens_func_comp_list[j]
         # Get LQT greens functions (currently replicates over loop, but ignore inefficiency for now):
-        tr_z = obspy.read(glob.glob(green_func_dir+"/*"+dist_label+"*"+comp+".z")[0])[0]
-        tr_r = obspy.read(glob.glob(green_func_dir+"/*"+dist_label+"*"+comp+".r")[0])[0]
-        tr_t = obspy.read(glob.glob(green_func_dir+"/*"+dist_label+"*"+comp+".t")[0])[0]
+        tr_z = obspy.read(glob.glob(os.path.join(green_func_dir, "*"+dist_label+"*"+comp+".z"))[0])[0]
+        tr_r = obspy.read(glob.glob(os.path.join(green_func_dir, "*"+dist_label+"*"+comp+".r"))[0])[0]
+        tr_t = obspy.read(glob.glob(os.path.join(green_func_dir, "*"+dist_label+"*"+comp+".t"))[0])[0]
         back_azi = real_arrival_times_dict['azi_takeoff_angles'][station]["P_azimuth_sta_to_event"]
         event_inclin_angle_at_station = real_arrival_times_dict['azi_takeoff_angles'][station]["P_toa_sta_inclination"]
         st_LQT = rotate_ZRT_to_LQT(tr_z,tr_r,tr_t,back_azi,event_inclin_angle_at_station)
         # And save:
-        st_LQT.select(channel="HHL").write(green_func_dir+"/auto_created_"+dist_label+"___"+comp+"."+"l", format="SAC")
-        st_LQT.select(channel="HHQ").write(green_func_dir+"/auto_created_"+dist_label+"___"+comp+"."+"q", format="SAC")
+        st_LQT.select(channel="HHL").write(os.path.join(green_func_dir, "auto_created_"+dist_label+"___"+comp+"."+"l"), format="SAC")
+        st_LQT.select(channel="HHQ").write(os.path.join(green_func_dir, "auto_created_"+dist_label+"___"+comp+"."+"q"), format="SAC")
         # Note: T does not need to be saved as already exists.
 
         # Get green func:                
-        green_curr_comp_st = obspy.read(glob.glob(green_func_dir+"/*"+dist_label+"*"+comp+"."+actual_waveform_comp)[0])
+        green_curr_comp_st = obspy.read(glob.glob(os.path.join(green_func_dir, "*"+dist_label+"*"+comp+"."+actual_waveform_comp))[0])
         # And differentaite if greens functions are for displacement:
         if convert_displacement_to_velocity==True:
             green_curr_comp_st[0].data = np.gradient(green_curr_comp_st[0].data)

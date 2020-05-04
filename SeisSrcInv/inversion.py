@@ -75,8 +75,8 @@ def load_input_data(datadir, real_data_fnames, green_func_fnames, manual_indices
     Inputs: arrays containing filenames of files with real data (columns for P (L component) only at the moment) and greens functions data (For M_xx, M_yy, M_zz, M_xy, M_xz, M_yz), respectively. Optional input is manual_indices_time_shift (an array/list of manual integer index time shifts for each station).
     Outputs: Real data array of shape (t, n) where t is number of time data points and n is number of stations; greens functions array of shape (t, g_n) where g_n is the number of greens functions components."""
     # Set up data storage arrays:
-    tmp_real_data = np.loadtxt(datadir+"/"+real_data_fnames[0],dtype=float)
-    tmp_green_func_data = np.loadtxt(datadir+"/"+green_func_fnames[0],dtype=float)
+    tmp_real_data = np.loadtxt(os.path.join(datadir,real_data_fnames[0]),dtype=float)
+    tmp_green_func_data = np.loadtxt(os.path.join(datadir, green_func_fnames[0]),dtype=float)
     num_time_pts = len(tmp_real_data) # Number of time points
     num_green_func_comp = len(tmp_green_func_data[0,:]) # Number of greens functions components
     real_data_array = np.zeros((len(real_data_fnames), num_time_pts), dtype=float)
@@ -84,8 +84,8 @@ def load_input_data(datadir, real_data_fnames, green_func_fnames, manual_indices
     
     # Loop over files, saving real and greens functions data to arrays:
     for i in range(len(real_data_fnames)):
-        real_data_array[i, :] = np.loadtxt(datadir+"/"+real_data_fnames[i],dtype=float)
-        green_func_array_raw[i, :, :] = np.transpose(np.loadtxt(datadir+"/"+green_func_fnames[i],dtype=float))
+        real_data_array[i, :] = np.loadtxt(os.path.join(datadir, real_data_fnames[i]),dtype=float)
+        green_func_array_raw[i, :, :] = np.transpose(np.loadtxt(os.path.join(datadir, green_func_fnames[i]),dtype=float))
     
     # Shift greens functions by manually specified amount in time (if specified):
     # (for allignment so that real data and greens functions are alligned)
@@ -123,8 +123,8 @@ def load_input_data_multiple_media(datadir, real_data_fnames, green_func_fnames,
         sys.exit()
     
     # Set up data storage arrays:
-    tmp_real_data = np.loadtxt(datadir+"/"+real_data_fnames[0],dtype=float)
-    tmp_green_func_data = np.loadtxt(datadir+"/"+green_func_fnames[0],dtype=float)
+    tmp_real_data = np.loadtxt(os.path.join(datadir, real_data_fnames[0]),dtype=float)
+    tmp_green_func_data = np.loadtxt(os.path.join(datadir, green_func_fnames[0]),dtype=float)
     num_time_pts = len(tmp_real_data) # Number of time points
     num_green_func_comp = len(tmp_green_func_data[0,:]) # Number of greens functions components
     real_data_array = np.zeros((len(real_data_fnames), num_time_pts), dtype=float)
@@ -132,11 +132,11 @@ def load_input_data_multiple_media(datadir, real_data_fnames, green_func_fnames,
     
     # Loop over files, saving real and greens functions data to arrays:
     for i in range(len(real_data_fnames)):
-        real_data_array[i, :] = np.loadtxt(datadir+"/"+real_data_fnames[i],dtype=float)
+        real_data_array[i, :] = np.loadtxt(os.path.join(datadir, real_data_fnames[i]),dtype=float)
         # Load in for medium 1:
-        green_func_array_raw[i, :, :, 0] = np.transpose(np.loadtxt(datadir+"/"+green_func_fnames_media_1[i],dtype=float))
+        green_func_array_raw[i, :, :, 0] = np.transpose(np.loadtxt(os.path.join(datadir, green_func_fnames_media_1[i]),dtype=float))
         # Load in for medium 2:
-        green_func_array_raw[i, :, :, 1] = np.transpose(np.loadtxt(datadir+"/"+green_func_fnames_media_2[i],dtype=float))
+        green_func_array_raw[i, :, :, 1] = np.transpose(np.loadtxt(os.path.join(datadir, green_func_fnames_media_2[i]),dtype=float))
     
     # Shift greens functions by manually specified amount in time (if specified):
     # (for allignment so that real data and greens functions are alligned)
