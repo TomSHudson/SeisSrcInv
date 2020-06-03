@@ -157,11 +157,11 @@ def FP_SDR(normal,slip):
     normal=np.array(normal)
     slip=np.array(slip)
     strike,dip=normal_SD(normal)
-    rake=np.arctan2(-slip[2],slip[0]*normal[1]-slip[1]*normal[0]);
+    rake=np.arctan2(-slip[2],slip[0]*normal[1]-slip[1]*normal[0])
     strike[dip>np.pi/2]+=np.pi
-    rake[dip>np.pi/2]=2*np.pi-rake[dip>np.pi/2];
+    rake[dip>np.pi/2]=2*np.pi-rake[dip>np.pi/2]
     dip[dip>np.pi/2]=np.pi-dip[dip>np.pi/2]
-    strike=np.mod(strike,2*np.pi);
+    strike=np.mod(strike,2*np.pi)
     rake[rake>np.pi]-=2*np.pi
     rake[rake<-np.pi]+=2*np.pi
     return np.array(strike).flatten(),np.array(dip).flatten(),np.array(rake).flatten()
@@ -1572,7 +1572,7 @@ def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_ph
             plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern_MT=radiation_pattern_MT, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=1, inversion_type=inversion_type, radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch)
         # And plot waveforms separately (if specified):
         if plot_wfs_separately_switch:
-            plot_fname = "Plots/"+MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png"
+            plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png")
             plot_wfs_of_most_likely_soln_separate_plot(stations, wfs_dict, plot_fname)
     
     elif inversion_type == "single_force":
