@@ -38,6 +38,7 @@ import matplotlib.pyplot as plt
 import os
 from obspy import UTCDateTime as UTCDateTime
 from scipy.signal import decimate
+import pandas as pd
 import NonLinLocPy.read_nonlinloc as read_nonlinloc
 
 #----------------------------------- Define parameters -----------------------------------
@@ -69,7 +70,9 @@ import NonLinLocPy.read_nonlinloc as read_nonlinloc
 #----------------------------------- Define functions -----------------------------------
 
 def get_arrival_time_data_from_NLLoc_hyp_files(nlloc_hyp_filename):
-    """Function to get phase data from NLLoc file."""
+    """Function to get phase data from NLLoc file.
+    Inputs:
+    nlloc_hyp_filename - Filename of nonlinloc event to use."""
     # Import nonlinloc data:
     nlloc_hyp_data = read_nonlinloc.read_hyp_file(nlloc_hyp_filename)
 
@@ -114,6 +117,99 @@ def get_arrival_time_data_from_NLLoc_hyp_files(nlloc_hyp_filename):
     return arrival_times_dict
 
 
+def get_theoretical_DAS_arrival_time_data(nlloc_hyp_filename, das_stations_filename, vp=3841., vs=1970., force_vertical_arrivals=True):
+    """Function to get phase data by synthetically modelling.
+    Note: currently only works using homogeneous velocity model approximation.
+    Inputs:
+    nlloc_hyp_filename - Filename of nonlinloc event to use.
+    das_stations_filename - QuakeMigrate style stations file containing DAS array coordinates."""
+    # Import nonlinloc data:
+    nlloc_hyp_data = read_nonlinloc.read_hyp_file(nlloc_hyp_filename)
+
+    # Read in station location data:
+    stations_df = pd.read_csv(das_stations_filename)
+
+    # Setup data store:
+    arrival_times_dict = {} # Create empty dictionary to store data (with keys: event_origin_time, station_arrivals {station {station_P_arrival, station_S_arrival}}})
+
+    # Get event origin times:
+    arrival_times_dict['event_origin_time'] = nlloc_hyp_data.origin_time
+    
+    # And get station arrival times and azimuth+takeoff angles for each phase, for event:
+    arrival_times_dict['station_arrival_times'] = {}
+    arrival_times_dict['azi_takeoff_angles'] = {}
+
+    # Loop over stations:
+    stations_list = list(stations_df['Name'])
+    for i in range(len(stations_list)):
+        station = stations_list[i]
+        stations_df_row_idx = stations_df.index[stations_df['Name']==station]
+        arrival_times_dict['station_arrival_times'][station] = {}
+        arrival_times_dict['azi_takeoff_angles'][station] = {}
+
+        # Loop over phases:
+        phases = ['P', 'S']
+        vels = [vp, vs]
+        for j in range(len(phases)):
+            phase = phases[j]
+            # Get event epi dist and azi:
+            epi_dist_m, azim_ab, azi_ba = obspy.geodetics.base.gps2dist_azimuth( nlloc_hyp_data.max_prob_hypocenter['lat'], nlloc_hyp_data.max_prob_hypocenter['lon'], float(stations_df.loc[stations_df_row_idx,'Latitude']), float(stations_df.loc[stations_df_row_idx,'Longitude']), a=(6378137.0 + float(stations_df.loc[stations_df_row_idx,'Elevation'])) )
+            depth_from_surface_m = float(stations_df.loc[stations_df_row_idx,'Elevation']) + 1000.*nlloc_hyp_data.max_prob_hypocenter['depth']
+
+
+            # Get arrival time:
+            # (Note: This is based on straight line ray path)
+            arrival_times_dict['station_arrival_times'][station][phase] = nlloc_hyp_data.origin_time + ((np.sqrt(epi_dist_m**2 + depth_from_surface_m**2) / vels[j]))
+
+            # Get station to event azimuth and takeoff angle:
+            if phase == 'P':
+                # Specify azimuth ad toa from event to station:
+                station_current_azimuth_event_to_sta = azim_ab
+                if force_vertical_arrivals:
+                    station_current_toa_event_to_sta = 180. # Force arrival to arrive vertically up (according to nonlinloc nomincature)
+                else:
+                    station_current_toa_event_to_sta = 180. - ((360./(2.*np.pi)) * np.arctan(epi_dist_m / depth_from_surface_m))
+                # And change to station to event:
+                if station_current_azimuth_event_to_sta > 180.:
+                    station_current_azimuth_sta_to_event = 180. - (360. - station_current_azimuth_event_to_sta)
+                elif station_current_azimuth_event_to_sta <= 180.:
+                    station_current_azimuth_sta_to_event = 360. - (180. - station_current_azimuth_event_to_sta)
+                if station_current_toa_event_to_sta > 90.:
+                    station_current_toa_sta_inclination = station_current_toa_event_to_sta - 90.
+                elif station_current_toa_event_to_sta <= 90.:
+                    station_current_toa_sta_inclination = station_current_toa_event_to_sta + 90.
+                arrival_times_dict['azi_takeoff_angles'][station]["P_azimuth_event_to_sta"] = station_current_azimuth_event_to_sta
+                arrival_times_dict['azi_takeoff_angles'][station]["P_azimuth_sta_to_event"] = station_current_azimuth_sta_to_event
+                arrival_times_dict['azi_takeoff_angles'][station]["P_toa_sta_inclination"] = station_current_toa_sta_inclination
+    
+    return arrival_times_dict
+
+
+def rotate_QT_synths_to_das_axis(green_func_array_q, green_func_array_t, das_azi_from_N, azi_event_to_sta_from_N, aniso_angle_from_N=-1.0, aniso_delay_t=0.0, fs=1000.0):
+    """Function to rotate synthetic QT data into das axis, assuming vertical arrival angles."""
+    # Setup input angles in rad:
+    gamma = das_azi_from_N*2.*np.pi/360.
+    theta = azi_event_to_sta_from_N*2.*np.pi/360.
+    if aniso_angle_from_N > 0.:
+        phi = aniso_angle_from_N*2.*np.pi/360.
+    else:
+        phi = 0.0
+    # 1. Calculate N and E fast directions:
+    N_fast = -green_func_array_q * np.cos(theta) * np.cos(phi)
+    E_fast = green_func_array_t * np.cos(theta) * np.cos(phi)
+    # 2. Calculate N and E slow directions:
+    N_slow = green_func_array_q * np.cos(theta) * np.sin(phi)
+    E_slow = -green_func_array_t * np.cos(theta) * np.sin(phi)
+    N_slow = np.roll(N_slow, int(fs*aniso_delay_t), axis=0)
+    E_slow = np.roll(E_slow, int(fs*aniso_delay_t), axis=0)
+    # 3. Combine fast and slow data together:
+    N_overall = N_fast + N_slow
+    E_overall = E_fast + E_slow
+    # 4. And convert to DAS orientation:
+    green_func_array_das_axis = N_overall * np.cos(gamma) + E_overall * np.sin(gamma)
+    return(green_func_array_das_axis)
+
+
 def rotate_ZRT_to_LQT(tr_z,tr_r,tr_t,back_azi,event_inclin_angle_at_station):
     """Function to rotate ZRT traces into LQT and save to outdir.
     Requires: tr_z,tr_r,tr_t - traces for z,r,t components; back_azi - back azimuth angle from reciever to event in degrees from north; 
@@ -149,6 +245,8 @@ def get_greens_functions_from_file(green_func_dir, station, dist_label, actual_w
         tr_z = obspy.read(glob.glob(os.path.join(green_func_dir, "*"+dist_label+"*"+comp+".z"))[0])[0]
         tr_r = obspy.read(glob.glob(os.path.join(green_func_dir, "*"+dist_label+"*"+comp+".r"))[0])[0]
         tr_t = obspy.read(glob.glob(os.path.join(green_func_dir, "*"+dist_label+"*"+comp+".t"))[0])[0]
+        tr_r.stats.starttime = tr_z.stats.starttime  # (Correct for start times if start times are not quite correct for some reason:)
+        tr_t.stats.startime = tr_z.stats.starttime  # (Correct for start times if start times are not quite correct for some reason:)
         back_azi = real_arrival_times_dict['azi_takeoff_angles'][station]["P_azimuth_sta_to_event"]
         event_inclin_angle_at_station = real_arrival_times_dict['azi_takeoff_angles'][station]["P_toa_sta_inclination"]
         st_LQT = rotate_ZRT_to_LQT(tr_z,tr_r,tr_t,back_azi,event_inclin_angle_at_station)
@@ -173,10 +271,15 @@ def get_greens_functions_from_file(green_func_dir, station, dist_label, actual_w
     return green_func_array
 
 
-def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, outdir, high_pass_freq, low_pass_freq, num_greens_func_samples, comp_list_MT, comp_list_single_force, comp_list_actual_waveforms, ZNE_switch, real_event_nonlinloc_hyp_file, mseed_fname, instrument_gains, convert_displacement_to_velocity, downsample_greens_func_factor, upsample_real_data_factor):
+def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, outdir, high_pass_freq, low_pass_freq, num_greens_func_samples, comp_list_MT, comp_list_single_force, comp_list_actual_waveforms, ZNE_switch, real_event_nonlinloc_hyp_file, mseed_fname, instrument_gains, convert_displacement_to_velocity, downsample_greens_func_factor, upsample_real_data_factor, das_data=False, das_stations_filename='', vp_das=3841., vs_das=1970., force_das_vertical_arrivals=True, das_channel='??N', das_azi_from_N=0.0, aniso_angle_from_N=-1.0, aniso_delay_t=0.0, synth_out_fs_for_das=1000.0):
     """Main function to run script."""
     # Get real event arrival times:
-    real_arrival_times_dict = get_arrival_time_data_from_NLLoc_hyp_files(real_event_nonlinloc_hyp_file)
+    # If DAS data:
+    if das_data:
+        real_arrival_times_dict = get_theoretical_DAS_arrival_time_data(real_event_nonlinloc_hyp_file, das_stations_filename, vp=vp_das, vs=vs_das, force_vertical_arrivals=force_das_vertical_arrivals)
+    # Or if standard (geophone or seismometer, with data in nonlinloc file) data:
+    else:
+        real_arrival_times_dict = get_arrival_time_data_from_NLLoc_hyp_files(real_event_nonlinloc_hyp_file)
     
     # Make outdir if not already made:
     try:
@@ -214,6 +317,29 @@ def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, 
             np.savetxt(os.path.join(outdir, "green_func_array_single_force_"+stat+"_"+actual_waveform_comp+".txt"), green_func_array_single_force)
             print("Output file:", os.path.join(outdir, "green_func_array_single_force_"+stat+"_"+actual_waveform_comp+".txt"))
 
+            # 1.c. And process for das parallel axis component, if das data:
+            if das_data:
+                # (Only process once, when have all components):
+                if k == len(comp_list_actual_waveforms) - 1:
+                    print("(Note: Currently, DAS axis rotation only implemented for MT data.)")
+                    # Check that required components exist:
+                    if os.path.exists(os.path.join(outdir, "green_func_array_MT_"+stat+"_q.txt")) and os.path.exists(os.path.join(outdir, "green_func_array_MT_"+stat+"_t.txt")):
+                        # Rotate synthetic data into DAS axis coords:
+                        green_func_array_q = np.loadtxt(os.path.join(outdir, "green_func_array_MT_"+stat+"_q.txt"), dtype=float)
+                        green_func_array_t = np.loadtxt(os.path.join(outdir, "green_func_array_MT_"+stat+"_t.txt"), dtype=float)
+                        if aniso_angle_from_N>=0.:
+                            print('Performing rotation to DAS axis for DAS azimuth of:', das_azi_from_N, 'and anisotropy angle of', aniso_angle_from_N)
+                        else:
+                            print('Performing rotation to DAS axis for DAS azimuth of:', das_azi_from_N, 'deg, and anisotropy angle of', aniso_angle_from_N, 'deg')
+                        azi_event_to_sta_from_N = real_arrival_times_dict['azi_takeoff_angles'][stat]["P_azimuth_event_to_sta"]
+                        green_func_array_das_axis = rotate_QT_synths_to_das_axis(green_func_array_q, green_func_array_t, das_azi_from_N, azi_event_to_sta_from_N, aniso_angle_from_N=aniso_angle_from_N, fs=synth_out_fs_for_das, aniso_delay_t=aniso_delay_t)
+                        # And save Greens functions to file:
+                        np.savetxt(os.path.join(outdir, "green_func_array_MT_"+stat+"_das_axis.txt"), green_func_array_das_axis)
+                        print("Output file:", os.path.join(outdir, "green_func_array_MT_"+stat+"_das_axis.txt"))
+                    else:
+                        print('Error: To find das-axis Greens functions, must of calculated synth components for Q and T. Exiting.')
+                        sys.exit()
+
             # 2. Process real data:
             # Import data from file:
             st_real = obspy.read(mseed_fname)
@@ -226,39 +352,56 @@ def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, 
                     upsampled_st_data_tmp = np.interp(new_xvals, orig_xvals, curr_st_data_tmp)
                     st_real[i_st].data = upsampled_st_data_tmp[:-int(upsample_real_data_factor-1)] # Make have last sample same as orig data
                     st_real[i_st].stats.sampling_rate = int(st_real[i_st].stats.sampling_rate*upsample_real_data_factor) # To make traces match start and end time (effectively updates start and end time)
-            # Rotate data from ZNE to ZRT if neccessary:
-            if ZNE_switch:
-                st_real_unrotated = st_real.copy()
-                st_real.clear()
-                #if actual_waveform_comp.upper() == "Z":
-                st_real.append(st_real_unrotated.select(station=stat,component="Z")[0])
-                #elif actual_waveform_comp.upper() == "R" or actual_waveform_comp.upper() == "T":
-                current_azi_source_to_stat = float(azi_source_to_stat_labels[i])
-                if current_azi_source_to_stat>180.:
-                    current_azi_stat_to_source = current_azi_source_to_stat-180.
-                else:
-                    current_azi_stat_to_source = current_azi_source_to_stat+180.
-                st_real_unrotated.select(station=stat).rotate('NE->RT', back_azimuth=current_azi_stat_to_source)
-                st_real.append(st_real_unrotated.select(station=stat,component="R")[0])
-                st_real.append(st_real_unrotated.select(station=stat,component="T")[0])
-            # And get LQT components too:
-            tr_z = st_real.select(station=stat,component="Z")[0]
-            tr_r = st_real.select(station=stat,component="R")[0]
-            tr_t = st_real.select(station=stat,component="T")[0]
-            back_azi = real_arrival_times_dict['azi_takeoff_angles'][stat]["P_azimuth_sta_to_event"]
-            event_inclin_angle_at_station = real_arrival_times_dict['azi_takeoff_angles'][stat]["P_toa_sta_inclination"]
-            st_LQT = rotate_ZRT_to_LQT(tr_z,tr_r,tr_t,back_azi,event_inclin_angle_at_station)
-            st_real.append(st_LQT.select(station=stat,component="L")[0])
-            st_real.append(st_LQT.select(station=stat,component="Q")[0])
-            st_real_filt = st_real.copy()
-            st_real_filt.filter('bandpass', freqmin=high_pass_freq, freqmax=low_pass_freq, corners=4, zerophase=False)
-            stat_arrival_time = real_arrival_times_dict["station_arrival_times"][stat]["P"]
-            #st_real_filt.trim(starttime=stat_arrival_time-0.1, endtime=stat_arrival_time+1.0)
-            sampling_rate = st_real_filt[0].stats.sampling_rate
-            st_real_filt.trim(starttime=stat_arrival_time-(50.*upsample_real_data_factor)/sampling_rate, endtime=stat_arrival_time+5.0)
-            real_data_out = np.transpose(st_real_filt.select(station=stat, component=actual_waveform_comp.upper())[0].data[0:num_greens_func_samples]/instrument_gains[i])
-            np.savetxt(os.path.join(outdir, "real_data_"+stat+"_"+actual_waveform_comp+".txt"), real_data_out)
-            print("Output file:", os.path.join(outdir, "real_data_"+stat+"_"+actual_waveform_comp+".txt"))
+            # Continue processing for if standard (non-das) data:
+            if not das_data:
+                # Rotate data from ZNE to ZRT if neccessary:
+                if ZNE_switch:
+                    st_real_unrotated = st_real.copy()
+                    st_real.clear()
+                    #if actual_waveform_comp.upper() == "Z":
+                    st_real.append(st_real_unrotated.select(station=stat,component="Z")[0])
+                    #elif actual_waveform_comp.upper() == "R" or actual_waveform_comp.upper() == "T":
+                    current_azi_source_to_stat = float(azi_source_to_stat_labels[i])
+                    if current_azi_source_to_stat>180.:
+                        current_azi_stat_to_source = current_azi_source_to_stat-180.
+                    else:
+                        current_azi_stat_to_source = current_azi_source_to_stat+180.
+                    st_real_unrotated.select(station=stat).rotate('NE->RT', back_azimuth=current_azi_stat_to_source)
+                    st_real.append(st_real_unrotated.select(station=stat,component="R")[0])
+                    st_real.append(st_real_unrotated.select(station=stat,component="T")[0])
+                # And get LQT components too:
+                tr_z = st_real.select(station=stat,component="Z")[0]
+                tr_r = st_real.select(station=stat,component="R")[0]
+                tr_t = st_real.select(station=stat,component="T")[0]
+                back_azi = real_arrival_times_dict['azi_takeoff_angles'][stat]["P_azimuth_sta_to_event"]
+                event_inclin_angle_at_station = real_arrival_times_dict['azi_takeoff_angles'][stat]["P_toa_sta_inclination"]
+                st_LQT = rotate_ZRT_to_LQT(tr_z,tr_r,tr_t,back_azi,event_inclin_angle_at_station)
+                st_real.append(st_LQT.select(station=stat,component="L")[0])
+                st_real.append(st_LQT.select(station=stat,component="Q")[0])
+                st_real_filt = st_real.copy()
+                st_real_filt.filter('bandpass', freqmin=high_pass_freq, freqmax=low_pass_freq, corners=4, zerophase=False)
+                stat_arrival_time = real_arrival_times_dict["station_arrival_times"][stat]["P"]
+                #st_real_filt.trim(starttime=stat_arrival_time-0.1, endtime=stat_arrival_time+1.0)
+                sampling_rate = st_real_filt[0].stats.sampling_rate
+                st_real_filt.trim(starttime=stat_arrival_time-(50.*upsample_real_data_factor)/sampling_rate, endtime=stat_arrival_time+5.0)
+                real_data_out = np.transpose(st_real_filt.select(station=stat, component=actual_waveform_comp.upper())[0].data[0:num_greens_func_samples]/instrument_gains[i])
+                np.savetxt(os.path.join(outdir, "real_data_"+stat+"_"+actual_waveform_comp+".txt"), real_data_out)
+                print("Output file:", os.path.join(outdir, "real_data_"+stat+"_"+actual_waveform_comp+".txt"))
+            # Or continue processing for if das data:
+            else:
+                # (So that only process once)
+                if k == 0:
+                    st_real_filt = st_real.copy()
+                    sampling_rate = st_real_filt[0].stats.sampling_rate
+                    st_real_filt.filter('bandpass', freqmin=high_pass_freq, freqmax=low_pass_freq, corners=4, zerophase=False)
+                    stat_arrival_time = real_arrival_times_dict["station_arrival_times"][stat]["P"]
+                    st_real_filt.trim(starttime=stat_arrival_time-(50.*upsample_real_data_factor)/sampling_rate, endtime=stat_arrival_time+5.0)
+                    real_data_out = np.transpose(st_real_filt.select(station=stat, channel=das_channel)[0].data[0:num_greens_func_samples]/instrument_gains[i])
+                    np.savetxt(os.path.join(outdir, "real_data_"+stat+"_das_axis.txt"), real_data_out)
+               
+
+
+
 
 
 #----------------------------------- End: Define functions -----------------------------------
