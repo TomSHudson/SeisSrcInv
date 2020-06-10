@@ -35,7 +35,8 @@ import numpy as np
 import obspy
 import glob
 import matplotlib.pyplot as plt
-import os
+import os, sys
+import gc
 from obspy import UTCDateTime as UTCDateTime
 from scipy.signal import decimate
 import pandas as pd
@@ -234,6 +235,14 @@ def rotate_ZRT_to_LQT(tr_z,tr_r,tr_t,back_azi,event_inclin_angle_at_station):
     return st_LQT
 
 
+def zero_pad_traces_from_artificial_starttime(st_to_zero_pad, artificial_starttime):
+    """Function to zero pad traces to a specified starttime."""
+    endtime_overall = st_to_zero_pad[0].stats.endtime
+    st_to_zero_pad.trim(starttime=artificial_starttime, endtime=endtime_overall, pad=True, fill_value=0.0)
+    return st_to_zero_pad
+    
+
+
 def get_greens_functions_from_file(green_func_dir, station, dist_label, actual_waveform_comp, num_greens_func_samples, greens_func_comp_list, real_arrival_times_dict, high_pass_freq, low_pass_freq, convert_displacement_to_velocity, downsample_greens_func_factor):
     """Function to get Greens functions from file."""
     # Create data store:
@@ -245,8 +254,21 @@ def get_greens_functions_from_file(green_func_dir, station, dist_label, actual_w
         tr_z = obspy.read(glob.glob(os.path.join(green_func_dir, "*"+dist_label+"*"+comp+".z"))[0])[0]
         tr_r = obspy.read(glob.glob(os.path.join(green_func_dir, "*"+dist_label+"*"+comp+".r"))[0])[0]
         tr_t = obspy.read(glob.glob(os.path.join(green_func_dir, "*"+dist_label+"*"+comp+".t"))[0])[0]
-        tr_r.stats.starttime = tr_z.stats.starttime  # (Correct for start times if start times are not quite correct for some reason:)
-        tr_t.stats.startime = tr_z.stats.starttime  # (Correct for start times if start times are not quite correct for some reason:)
+        # tr_r.stats.starttime = tr_z.stats.starttime  # (Correct for start times if start times are not quite correct for some reason:)
+        # tr_t.stats.startime = tr_z.stats.starttime  # (Correct for start times if start times are not quite correct for some reason:)
+        st_green_func_tmp = obspy.Stream()
+        tr_z.stats.channel = 'HHZ'
+        tr_r.stats.channel = 'HHR'
+        tr_t.stats.channel = 'HHT'
+        st_green_func_tmp.append(tr_z)
+        st_green_func_tmp.append(tr_r)
+        st_green_func_tmp.append(tr_t)
+        st_green_func_tmp = zero_pad_traces_from_artificial_starttime(st_green_func_tmp, UTCDateTime('1970-01-01T00:00:00.0'))
+        tr_z = st_green_func_tmp.select(channel='HHZ')[0]
+        tr_r = st_green_func_tmp.select(channel='HHR')[0]
+        tr_t = st_green_func_tmp.select(channel='HHT')[0]
+        del st_green_func_tmp
+        gc.collect()
         back_azi = real_arrival_times_dict['azi_takeoff_angles'][station]["P_azimuth_sta_to_event"]
         event_inclin_angle_at_station = real_arrival_times_dict['azi_takeoff_angles'][station]["P_toa_sta_inclination"]
         st_LQT = rotate_ZRT_to_LQT(tr_z,tr_r,tr_t,back_azi,event_inclin_angle_at_station)
