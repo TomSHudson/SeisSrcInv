@@ -312,10 +312,14 @@ def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, 
             print("Output file:", os.path.join(outdir, "green_func_array_MT_"+stat+"_"+actual_waveform_comp+".txt"))
     
             # 1.b. And process for single force components, if they exist:  
-            green_func_array_single_force = get_greens_functions_from_file(green_func_dir, stat, dist_label, actual_waveform_comp, num_greens_func_samples, comp_list_single_force, real_arrival_times_dict, high_pass_freq, low_pass_freq, convert_displacement_to_velocity, downsample_greens_func_factor)
-            # And save Greens functions to file:
-            np.savetxt(os.path.join(outdir, "green_func_array_single_force_"+stat+"_"+actual_waveform_comp+".txt"), green_func_array_single_force)
-            print("Output file:", os.path.join(outdir, "green_func_array_single_force_"+stat+"_"+actual_waveform_comp+".txt"))
+            try:
+                green_func_array_single_force = get_greens_functions_from_file(green_func_dir, stat, dist_label, actual_waveform_comp, num_greens_func_samples, comp_list_single_force, real_arrival_times_dict, high_pass_freq, low_pass_freq, convert_displacement_to_velocity, downsample_greens_func_factor)
+                # And save Greens functions to file:
+                np.savetxt(os.path.join(outdir, "green_func_array_single_force_"+stat+"_"+actual_waveform_comp+".txt"), green_func_array_single_force)
+                print("Output file:", os.path.join(outdir, "green_func_array_single_force_"+stat+"_"+actual_waveform_comp+".txt"))
+            except IndexError:
+                print('Single force components appear not to exist. If they should exist, check that X,Y,Z components can be found in the specified green_func_dir')
+                print('Continuing without processing single force components.')
 
             # 1.c. And process for das parallel axis component, if das data:
             if das_data:
