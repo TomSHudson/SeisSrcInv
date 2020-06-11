@@ -293,7 +293,33 @@ def get_greens_functions_from_file(green_func_dir, station, dist_label, actual_w
     return green_func_array
 
 
-def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, outdir, high_pass_freq, low_pass_freq, num_greens_func_samples, comp_list_MT, comp_list_single_force, comp_list_actual_waveforms, ZNE_switch, real_event_nonlinloc_hyp_file, mseed_fname, instrument_gains, convert_displacement_to_velocity, downsample_greens_func_factor, upsample_real_data_factor, das_data=False, das_stations_filename='', vp_das=3841., vs_das=1970., force_das_vertical_arrivals=True, das_channel='??N', das_azi_from_N=0.0, aniso_angle_from_N=-1.0, aniso_delay_t=0.0, synth_out_fs_for_das=1000.0):
+def specific_das_processing(station_labels, dist_labels, outdir, waveform_comp='das_axis', switch_polarity=False):
+    """Function to perform specific DAS array processing on data for use in teh FW MT inversion.
+    Note: Currently only implemented for MT data."""    
+    # 1. Import all data:
+    data_tmp = np.loadtxt(os.path.join(outdir, "green_func_array_MT_"+station_labels[0]+"_"+waveform_comp+".txt"), dtype=float)
+    synth_data_for_inv = np.zeros((len(station_labels), data_tmp.shape[0], data_tmp.shape[1]), dtype=float)
+    for i in range(len(station_labels)):
+        stat = station_labels[i]
+        synth_data_for_inv[i,:,:] = np.loadtxt(os.path.join(outdir, "green_func_array_MT_"+station_labels[i]+"_"+waveform_comp+".txt"), dtype=float)
+    
+    # 2. Switch polarity of DAS cable (if specified):
+    if switch_polarity:
+        print('Switching polarity')
+        synth_data_for_inv = -1. * synth_data_for_inv
+
+    # 3. Convert velocity synthetics to strain rate:
+    print('Converting velocity to strain rate')
+    dx = np.average(np.array(dist_labels).astype(np.float))
+    synth_data_for_inv = np.gradient(synth_data_for_inv, dx, axis=0) / dx
+
+    # 4. Save data back out:
+    for i in range(len(station_labels)):
+        np.savetxt(os.path.join(outdir, "green_func_array_MT_"+station_labels[i]+"_"+waveform_comp+".txt"), synth_data_for_inv[i,:,:])
+    print('Finished additional das data processing.')
+
+
+def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, outdir, high_pass_freq, low_pass_freq, num_greens_func_samples, comp_list_MT, comp_list_single_force, comp_list_actual_waveforms, ZNE_switch, real_event_nonlinloc_hyp_file, mseed_fname, instrument_gains, convert_displacement_to_velocity, downsample_greens_func_factor, upsample_real_data_factor, das_data=False, das_stations_filename='', vp_das=3841., vs_das=1970., force_das_vertical_arrivals=True, das_channel='??N', das_azi_from_N=0.0, aniso_angle_from_N=-1.0, aniso_delay_t=0.0, synth_out_fs_for_das=1000.0, switch_das_polarity=False):
     """Main function to run script."""
     # Get real event arrival times:
     # If DAS data:
@@ -424,6 +450,10 @@ def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, 
                     st_real_filt.trim(starttime=stat_arrival_time-(50.*upsample_real_data_factor)/sampling_rate, endtime=stat_arrival_time+5.0)
                     real_data_out = np.transpose(st_real_filt.select(station=stat, channel=das_channel)[0].data[0:num_greens_func_samples]/instrument_gains[i])
                     np.savetxt(os.path.join(outdir, "real_data_"+stat+"_das_axis.txt"), real_data_out)
+
+    # And do final DAS processing, if DAS data is specified:
+    if das_data:
+        specific_das_processing(station_labels, dist_labels, outdir, waveform_comp='das_axis', switch_polarity=switch_das_polarity)
                
 
 
