@@ -186,6 +186,70 @@ def get_theoretical_DAS_arrival_time_data(nlloc_hyp_filename, das_stations_filen
     return arrival_times_dict
 
 
+def apply_aniso_to_synths(station_labels, dist_labels, azi_source_to_stat_labels, outdir, aniso_angle_from_N=-1.0, aniso_delay_t=0.0, fs=1000.):
+    """Function to apply anisotropy rotation and delay times to model data to simulate anisotropy.
+    Note: Assumes that arrivals at stations arrive vertically."""
+    # Convert anisotropy angles and delay times to lists, if not specified:
+    try:
+        len(aniso_angle_from_N)
+    except TypeError:
+        aniso_angle_from_N = [aniso_angle_from_N]
+    try:
+        len(aniso_delay_t)
+    except TypeError:
+        aniso_delay_t = [aniso_delay_t]
+
+    # Loop over stations, processing anisotropy data:
+    for i in range(len(station_labels)):
+        # 1. Import all required data:
+        green_func_array_r = np.loadtxt(os.path.join(outdir, "green_func_array_MT_"+station_labels[i]+"_r.txt"), dtype=float)
+        green_func_array_q = np.loadtxt(os.path.join(outdir, "green_func_array_MT_"+station_labels[i]+"_q.txt"), dtype=float)
+        green_func_array_t = np.loadtxt(os.path.join(outdir, "green_func_array_MT_"+station_labels[i]+"_t.txt"), dtype=float)
+
+        # 2. Correct for anisotropy:
+        theta = float(azi_source_to_stat_labels[i]) * 2. * np.pi / 360. # Source to station azi from north
+        if len(aniso_angle_from_N) == 1:
+            phi = aniso_angle_from_N[0] * 2. * np.pi / 360. # Horizontal angle of splitting anisotropy
+        else:
+            phi = aniso_angle_from_N[i] * 2. * np.pi / 360. # Horizontal angle of splitting anisotropy
+        # 2.a. Calculate N and E fast directions:
+        N_fast = -green_func_array_q * np.cos(theta) * np.cos(phi)
+        E_fast = green_func_array_t * np.cos(theta) * np.cos(phi)
+        Q_fast = green_func_array_q * np.cos(phi)
+        T_fast = green_func_array_t * np.cos(phi)
+        # 2.b. Calculate N and E slow directions:
+        N_slow = green_func_array_q * np.cos(theta) * np.sin(phi)
+        E_slow = -green_func_array_t * np.cos(theta) * np.sin(phi)
+        Q_slow = -green_func_array_q * np.sin(phi)
+        T_slow = -green_func_array_t * np.sin(phi)       
+        if len(aniso_delay_t) == 1:
+            N_slow = np.roll(N_slow, int(fs*aniso_delay_t[0]), axis=0)
+            E_slow = np.roll(E_slow, int(fs*aniso_delay_t[0]), axis=0)
+            Q_slow = np.roll(Q_slow, int(fs*aniso_delay_t[0]), axis=0)
+            T_slow = np.roll(T_slow, int(fs*aniso_delay_t[0]), axis=0)
+        else:
+            N_slow = np.roll(N_slow, int(fs*aniso_delay_t[i]), axis=0)
+            E_slow = np.roll(E_slow, int(fs*aniso_delay_t[i]), axis=0)
+            Q_slow = np.roll(Q_slow, int(fs*aniso_delay_t[i]), axis=0)
+            T_slow = np.roll(T_slow, int(fs*aniso_delay_t[i]), axis=0)
+        # 2.c. Combine fast and slow data together:
+        N_overall = N_fast + N_slow
+        E_overall = E_fast + E_slow
+        Q_overall = Q_fast + Q_slow
+        T_overall = T_fast + T_slow
+        # 2.d. Convert N and E components to R component (Q, T already done above):
+        R_overall = (N_overall * np.cos(theta)) + (E_overall * np.sin(theta))
+        # Note that because of the vertical arrivals assumption, L and Z are not corrected, 
+        # as the assumption assumes that they are alligned.
+
+        # 3. Output converted greens functions to file:
+        np.savetxt(os.path.join(outdir, "green_func_array_MT_"+station_labels[i]+"_r.txt"), R_overall)
+        np.savetxt(os.path.join(outdir, "green_func_array_MT_"+station_labels[i]+"_q.txt"), Q_overall)
+        np.savetxt(os.path.join(outdir, "green_func_array_MT_"+station_labels[i]+"_t.txt"), T_overall)
+
+    print('Finished additional data processing to approximate anisotropy.')
+
+
 def rotate_QT_synths_to_das_axis(green_func_array_q, green_func_array_t, das_azi_from_N, azi_event_to_sta_from_N, aniso_angle_from_N=-1.0, aniso_delay_t=0.0, fs=1000.0):
     """Function to rotate synthetic QT data into das axis, assuming vertical arrival angles."""
     # Setup input angles in rad:
@@ -319,8 +383,52 @@ def specific_das_processing(station_labels, dist_labels, outdir, waveform_comp='
     print('Finished additional das data processing.')
 
 
-def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, outdir, high_pass_freq, low_pass_freq, num_greens_func_samples, comp_list_MT, comp_list_single_force, comp_list_actual_waveforms, ZNE_switch, real_event_nonlinloc_hyp_file, mseed_fname, instrument_gains, convert_displacement_to_velocity, downsample_greens_func_factor, upsample_real_data_factor, das_data=False, das_stations_filename='', vp_das=3841., vs_das=1970., force_das_vertical_arrivals=True, das_channel='??N', das_azi_from_N=0.0, aniso_angle_from_N=-1.0, aniso_delay_t=0.0, synth_out_fs_for_das=1000.0, switch_das_polarity=False):
-    """Main function to run script."""
+def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, outdir, high_pass_freq, low_pass_freq, num_greens_func_samples, comp_list_MT, comp_list_single_force, comp_list_actual_waveforms, ZNE_switch, real_event_nonlinloc_hyp_file, mseed_fname, instrument_gains, convert_displacement_to_velocity, downsample_greens_func_factor, upsample_real_data_factor, aniso_angle_from_N=-1.0, aniso_delay_t=0.0, synth_out_fs=1000., das_data=False, das_stations_filename='', vp_das=3841., vs_das=1970., force_das_vertical_arrivals=True, das_channel='??N', das_azi_from_N=0.0, switch_das_polarity=False):
+    """Main function to convert fk outputs into inputs for SeisSrcInv inversion.
+    Arguments:
+    Required:
+    station_labels - List of station labels to process for (type: list of strs)
+    dist_labels - List of distance labels, corresponding to those used in the fk analysis. Same size as station_labels. (type: list of strs)
+    azi_source_to_stat_labels - List of source-to-station azimuths labels, corresponding to those used in the fk analysis. 
+                                Same size as station_labels. (type: list of strs)
+    green_func_dir - Path to the directory containing the greens functions from fk (type str)
+    outdir - Path to the directory to put data ready for input to inversion (type str)
+    high_pass_freq - High pass frequency with which to filter the data (type: float)
+    low_pass_freq - Low pass frequency with which to filter the data (type: float)
+    num_greens_func_samples - The number of greens function samples to save to the output files to be used as inputs in the inversion. Note 
+                                that this value is after downsampling (specified by downsample_greens_func_factor) (type int)
+    comp_list_MT - List of moment tensor components (e.g. ["xx", "yy", "zz", "xy", "xz", "yz"]) (type: list)
+    comp_list_single_force - List of single force components (e.g. ["X", "Y", "Z"]) (type: list)
+    comp_list_actual_waveforms - ['z','r','t','l','q'] # Waveform components (l and q components are calculated in this function, z,r,t by fk) (type: list)
+    ZNE_switch - If True, will convert ZNE data to ZLQRT (If real data is in ZNE format, will need to be rotated so set to True). (type: bool)
+    real_event_nonlinloc_hyp_file - The nonlinloc hyp filename for the event (Note that it could be artificially created if using DAS, 
+                                    as it is primarily used for arrival azimuths and takeoff angles) (type: str)
+    mseed_fname - Filename of the mseed file containing the real data (type: str)
+    instrument_gains - List of instrument gains. Same size as station_labels. (type: list of floats)
+    convert_displacement_to_velocity - If True, converts displacement snythetics (from fk) to velocity. Note that this is dependent upon the
+                                         source-time-function used in fk. (type: bool)
+    downsample_greens_func_factor - Factor by which to downsample greens functions (currently must be <14) (type: int)
+    upsample_real_data_factor - Factor by which to upsample real data, via interpolation (type: int)
+
+    Optional:
+    # General:
+    aniso_angle_from_N - Anisotropy splitting angle in degrees from N. If negative, will not apply anisotropy correction. 
+                            Default is -1.0. (type: float or list of floats of len(station_labels))
+    aniso_delay_t - Anisotropy fast to slow delay time, in seconds. Default is 0.0. (type: float or list of floats of len(station_labels))
+    synth_out_fs - Sampling rate, in Hz, of greens functions out (for performing anisotropy time shift). Default is 1000 Hz. (type: float)
+    (Note that if anisotropy is applied, it is currently assumed that all ray arrivals are vertical, and the fabric can be described by )
+    # DAS specific:
+    das_data - Switch to specify whether processing DAS data. Default is False. (type: bool)
+    das_stations_filename - Specify a file containing DAS station coords. Currently taken as a csv file in the format of stations 
+                            files for QuakeMigrate. (type: str)
+    vp_das - Approximate P wave velocity assumed for DAS processing, in m/s. Default is 3841. (type: float)
+    vs_das - Approximate S wave velocity assumed for DAS processing, in m/s. Default is 1970. (type: float)
+    force_das_vertical_arrivals - Switch to force DAS arrivals to be vertical Default is True, as in anisotropy assumptions (type: bool)
+    das_channel - The real data mseed channel to use that represents the DAS axis. Default is '??N'. (type: str)
+    das_azi_from_N - The angle of the DAS cable in degrees from N. Currently only a single float value, but in future, 
+                    hope to implement vertical fibre and multi-direction fibre. (type: float)
+    switch_das_polarity - Option to switch DAS polarity of strain rate data. Default is False. (type: bool)
+    """
     # Get real event arrival times:
     # If DAS data:
     if das_data:
@@ -369,7 +477,13 @@ def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, 
                 print('Single force components appear not to exist. If they should exist, check that X,Y,Z components can be found in the specified green_func_dir')
                 print('Continuing without processing single force components.')
 
-            # 1.c. And process for das parallel axis component, if das data:
+            # 1.c. Simulate anisotropy:
+            # (Note: Do not simulate anisotropy here if das data, as part 1.d below will do this instead)
+            if not das_data:
+                if aniso_angle_from_N >= 0.:
+                    apply_aniso_to_synths(station_labels, dist_labels, azi_source_to_stat_labels, outdir, aniso_angle_from_N=aniso_angle_from_N, aniso_delay_t=aniso_delay_t, fs=synth_out_fs)
+
+            # 1.d. And process for das parallel axis component, if das data:
             if das_data:
                 # (Only process once, when have all components):
                 if k == len(comp_list_actual_waveforms) - 1:
@@ -384,7 +498,7 @@ def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, 
                         else:
                             print('Performing rotation to DAS axis for DAS azimuth of:', das_azi_from_N, 'deg, and anisotropy angle of', aniso_angle_from_N, 'deg')
                         azi_event_to_sta_from_N = real_arrival_times_dict['azi_takeoff_angles'][stat]["P_azimuth_event_to_sta"]
-                        green_func_array_das_axis = rotate_QT_synths_to_das_axis(green_func_array_q, green_func_array_t, das_azi_from_N, azi_event_to_sta_from_N, aniso_angle_from_N=aniso_angle_from_N, fs=synth_out_fs_for_das, aniso_delay_t=aniso_delay_t)
+                        green_func_array_das_axis = rotate_QT_synths_to_das_axis(green_func_array_q, green_func_array_t, das_azi_from_N, azi_event_to_sta_from_N, aniso_angle_from_N=aniso_angle_from_N, fs=synth_out_fs, aniso_delay_t=aniso_delay_t)
                         # And save Greens functions to file:
                         np.savetxt(os.path.join(outdir, "green_func_array_MT_"+stat+"_das_axis.txt"), green_func_array_das_axis)
                         print("Output file:", os.path.join(outdir, "green_func_array_MT_"+stat+"_das_axis.txt"))
