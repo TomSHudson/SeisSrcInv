@@ -27,7 +27,7 @@ import math # For plotting contours as line
 import os,sys
 import random
 from matplotlib import path # For getting circle bounding path for MT plotting
-from obspy.imaging.scripts.mopad import MomentTensor, BeachBall # For getting nodal planes for unconstrained moment tensors
+from obspy.imaging.scripts.mopad import MomentTensor, BeachBall, NED2USE # For getting nodal planes for unconstrained moment tensors
 from obspy.core.event.source import farfield # For calculating MT radiation patterns
 from matplotlib.patches import Polygon, Circle # For plotting MT radiation patterns
 import matplotlib.patches as mpatches # For adding patches for creating legends etc
@@ -166,6 +166,27 @@ def FP_SDR(normal,slip):
     rake[rake<-np.pi]+=2*np.pi
     return np.array(strike).flatten(),np.array(dip).flatten(),np.array(rake).flatten()
 
+def normal_SD(normal):
+    """
+    Convert a plane normal to strike and dip
+    Coordinate system is North East Down.
+    Args
+        normal: numpy matrix - Normal vector
+    Returns
+        (float, float): tuple of strike and dip angles in radians
+    """
+    if not isinstance(normal, np.matrixlib.defmatrix.matrix):
+        normal = np.array(normal)/np.sqrt(np.sum(normal*normal, axis=0))
+    else:
+        normal = normal/np.sqrt(np.diag(normal.T*normal))
+    normal[:, np.array(normal[2, :] > 0).flatten()] *= -1
+    normal = np.array(normal)
+    strike = np.arctan2(-normal[0], normal[1])
+    dip = np.arctan2((normal[1]**2+normal[0]**2),
+                     np.sqrt((normal[0]*normal[2])**2+(normal[1]*normal[2])**2))
+    strike = np.mod(strike, 2*np.pi)
+    return strike, dip
+
 def MT33_SDR(MT33):
     """Converts 3x3 matrix to strike dip and rake values (in radians)
     Converts the 3x3 Moment Tensor to the strike, dip and rake. 
@@ -242,6 +263,14 @@ def Lambert_azimuthal_equal_area_projection_conv_XY_plane_for_MTs(x,y,z):
     Y = y * np.sqrt(np.absolute(1/(1+z)))
     return X,Y
 
+
+def stereographic_equal_angle_projection_conv_XY_plane_for_MTs(x,y,z):
+    """Function to take 3D grid coords for a cartesian coord system and convert to 2D stereographic equal angle projection."""
+    X = x / (1-z)
+    Y = y / (1-z)
+    return X,Y
+
+
 def rotate_threeD_coords_about_spec_axis(x, y, z, rot_angle, axis_for_rotation="x"):
     """Function to rotate about x-axis (right-hand rule). Rotation angle must be in radians."""
     if axis_for_rotation == "x":
@@ -307,14 +336,17 @@ def get_nodal_plane_xyz_coords(mt_in):
     pos_nodalline = bb._nodalline_positive # extract positive nodal plane coords (in 3D x,y,z)
     return neg_nodalline, pos_nodalline
 
-def plot_radiation_pattern_for_given_NED_DC_sixMT(ax, radiation_pattern_MT, bounding_circle_path, lower_upper_hemi_switch="lower", radiation_MT_phase="P", unconstrained_vs_DC_switch="unconstrained", plot_plane="EN"):
+def plot_radiation_pattern_for_given_NED_full_MT(ax, radiation_pattern_full_MT, bounding_circle_path, lower_upper_hemi_switch="lower", radiation_MT_phase="P", unconstrained_vs_DC_switch="unconstrained", plot_plane="EN"):
     """Function to plot radiation pattern on axis ax, given 6 MT describing MT to plot radiation pattern for and other args.
     Outputs axis ax with radiation pattern plotted."""
     # Get MT to plot radiation pattern for:
-    ned_mt = radiation_pattern_MT
+    ned_mt = [radiation_pattern_full_MT[0,0], radiation_pattern_full_MT[1,1], radiation_pattern_full_MT[2,2], radiation_pattern_full_MT[0,1], radiation_pattern_full_MT[0,2], radiation_pattern_full_MT[1,2]]
 
     # Get spherical points to sample for radiation pattern:
-    theta = np.linspace(0,np.pi,100)
+    if unconstrained_vs_DC_switch == "DC":
+        theta = np.linspace(0,np.pi,200)
+    else:
+        theta = np.linspace(0,np.pi,100)
     phi = np.linspace(0.,2*np.pi,len(theta))
     r = np.ones(len(theta))
     THETA,PHI = np.meshgrid(theta, phi)
@@ -336,9 +368,6 @@ def plot_radiation_pattern_for_given_NED_DC_sixMT(ax, radiation_pattern_MT, boun
     if unconstrained_vs_DC_switch == "DC":
         disp_magn[disp_magn>=0.] = 1.
         disp_magn[disp_magn<0.] = -1.
-
-    # And convert radiation pattern to 2D coords:
-    ###X_radiaton_coords,Y_radiaton_coords = Lambert_azimuthal_equal_area_projection_conv_XY_plane_for_MTs(radiation_field_sample_pts[0],radiation_field_sample_pts[1],radiation_field_sample_pts[2])
 
     # Create 2D XY radial mesh coords (for plotting) and plot radiation pattern:
     theta_spacing = theta[1]-theta[0]
@@ -385,10 +414,10 @@ def plot_radiation_pattern_for_given_NED_DC_sixMT(ax, radiation_pattern_MT, boun
     
     return ax
 
-def plot_nodal_planes_for_given_NED_sixMT(ax, MT_for_nodal_planes, bounding_circle_path, lower_upper_hemi_switch="lower", alpha_nodal_planes=0.3, plot_plane="EN"):
+def plot_nodal_planes_for_given_NED_full_MT(ax, full_MT_for_nodal_planes, bounding_circle_path, lower_upper_hemi_switch="lower", alpha_nodal_planes=0.3, plot_plane="EN"):
     """Function for plotting nodal planes on axis ax, for given 6MT in NED format for nodal planes."""
-
-    ned_mt = MT_for_nodal_planes
+    # Get ned 6 mt to plot nodal plaens for
+    ned_mt = [full_MT_for_nodal_planes[0,0], full_MT_for_nodal_planes[1,1], full_MT_for_nodal_planes[2,2], full_MT_for_nodal_planes[0,1], full_MT_for_nodal_planes[0,2], full_MT_for_nodal_planes[1,2]]
 
     # Get 3D nodal planes:
     plane_1_3D, plane_2_3D = get_nodal_plane_xyz_coords(ned_mt)
@@ -690,22 +719,23 @@ def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern
     # Setup bounding circle and create bounding path from circle:
     ax, bounding_circle_path = create_and_plot_bounding_circle_and_path(ax)
     
-    
     # Plot radiation pattern and nodal planes if inversion_type is DC or unconstrained:
     if inversion_type == "DC" or inversion_type == "unconstrained":
         unconstrained_vs_DC_switch = inversion_type
         
         # Plot radiation pattern if provided with radiation pattern MT to plot:
         if not len(radiation_pattern_MT)==0:
-            plot_radiation_pattern_for_given_NED_DC_sixMT(ax, radiation_pattern_MT, bounding_circle_path, lower_upper_hemi_switch=lower_upper_hemi_switch, radiation_MT_phase=radiation_MT_phase, unconstrained_vs_DC_switch=unconstrained_vs_DC_switch, plot_plane=plot_plane) # Plot radiation pattern
-    
+            # if inversion_type == "unconstrained":
+            radiation_pattern_full_MT = get_full_MT_array(radiation_pattern_MT)
+            plot_radiation_pattern_for_given_NED_full_MT(ax, radiation_pattern_full_MT, bounding_circle_path, lower_upper_hemi_switch=lower_upper_hemi_switch, radiation_MT_phase=radiation_MT_phase, unconstrained_vs_DC_switch=unconstrained_vs_DC_switch, plot_plane=plot_plane) # Plot radiation pattern
+
         # Plot MT nodal plane solutions:
         # Get samples to plot:
         # IF single sample, plot most likely (assocaited with radiation pattern):
         if num_MT_solutions_to_plot == 1:
             if not len(radiation_pattern_MT)==0:
-                curr_MT_to_plot = radiation_pattern_MT
-                ax = plot_nodal_planes_for_given_NED_sixMT(ax, curr_MT_to_plot, bounding_circle_path, lower_upper_hemi_switch, alpha_nodal_planes=0.3, plot_plane=plot_plane)
+                curr_MT_to_plot = get_full_MT_array(radiation_pattern_MT)
+                ax = plot_nodal_planes_for_given_NED_full_MT(ax, curr_MT_to_plot, bounding_circle_path, lower_upper_hemi_switch, alpha_nodal_planes=0.3, plot_plane=plot_plane)
         # else if number of samples > 1:
         else:
             if len(MTs_to_plot[0,:]) > num_MT_solutions_to_plot:
@@ -715,10 +745,10 @@ def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern
             # Loop over MT solutions, plotting nodal planes:
             for i in sample_indices:
                 # Get current mt:
-                curr_MT_to_plot = MTs_to_plot[:,i]
+                curr_MT_to_plot = get_full_MT_array(MTs_to_plot[:,i])
                 # And try to plot current MT nodal planes:
                 print("Attempted to plot solution", i)
-                ax = plot_nodal_planes_for_given_NED_sixMT(ax, curr_MT_to_plot, bounding_circle_path, lower_upper_hemi_switch, alpha_nodal_planes=0.3, plot_plane=plot_plane)
+                ax = plot_nodal_planes_for_given_NED_full_MT(ax, curr_MT_to_plot, bounding_circle_path, lower_upper_hemi_switch, alpha_nodal_planes=0.3, plot_plane=plot_plane)
     
     # Or plot single force vector if inversion_type is single_force:
     elif inversion_type == "single_force":
@@ -741,7 +771,6 @@ def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern
             # And plot slip direction and uncertainty bounds:
             ax = plot_uncertainty_vector_area_for_full_soln(ax, max_likelihood_vector, x_uncert_bounds, y_uncert_bounds, z_uncert_bounds, plot_plane=plot_plane)
                         
-            
     # Plot stations (if provided):
     if not len(stations) == 0:
         # Loop over stations:
