@@ -243,8 +243,16 @@ def get_slip_vector_from_full_MT(full_MT):
     # (For fault plane 1)
     slip_vector = (1./np.sqrt(2))*(T_axis_vector - P_axis_vector)
     normal_axis_vector = (1./np.sqrt(2))*(T_axis_vector + P_axis_vector)
+    # s,d,r = MT33_SDR(full_MT)
+    # sdr = [s[0], d[0], r[0]]
+    # normal_axis_vector = np.array([- np.sin(sdr[1]) * np.sin(sdr[0]),
+    #                              - np.sin(sdr[1]) * np.sin(sdr[0]), 
+    #                                 np.cos(sdr[1])])
+    # slip_vector = [np.cos(sdr[2]) * np.cos(sdr[0]) + np.sin(sdr[2]) * np.cos(sdr[1]) * np.sin(sdr[0]), 
+    #                 - np.cos(sdr[2]) * np.sin(sdr[0]) + np.sin(sdr[2]) * np.cos(sdr[1]) * np.cos(sdr[0]),
+    #                 np.sin(sdr[2]) * np.sin(sdr[1])]
 
-    return slip_vector, T_axis_vector, null_axis_vector, P_axis_vector
+    return slip_vector, normal_axis_vector, T_axis_vector, null_axis_vector, P_axis_vector
 
 def convert_spherical_coords_to_cartesian_coords(r,theta,phi):
     """Function to take spherical coords and convert to cartesian coords. (theta between 0 and pi, phi between 0 and 2pi)"""
@@ -538,9 +546,10 @@ def shift_twoD_data_array_to_have_max_in_centre(twoD_array, axis_0_labels, axis_
     axis_1_labels = np.roll(axis_1_labels, axis_1_roll_amount)
     return twoD_array, axis_0_labels, axis_1_labels
 
-def get_uncertainty_estimate_bounds_full_soln(MTs, MTp, inversion_type, n_data_frac=0.1, use_gau_fit=False):
+def get_uncertainty_estimate_bounds_full_soln(MTs, MTp, inversion_type, n_data_frac=0.1, use_gau_fit=False, DC_switch_slip_vector=False):
     """Function to get uncertainty estimate of the direction/orientation of the radiation pattern.
     Currently takes a fraction of the data (e.g. 10%) and fits a Gaussian to the data, taking the full width half maximum as the measure (more representatitive than the standard deviation.)
+    DC_switch_slip_vector is only for DC solutions, and switches the slip vector from the primary to secondary nodal plane.
     Returns the upper and lower bounds of the uncertainty in direction in terms of theta and phi as well as x,y,z.
     Note: Currently doesn't centre data for fitting gaussian."""
     
@@ -570,8 +579,11 @@ def get_uncertainty_estimate_bounds_full_soln(MTs, MTp, inversion_type, n_data_f
             # Get slip direction for current DC MT:
             MT_curr = MTs_to_process[:,a]
             MT_curr_full_MT = get_full_MT_array(MT_curr)
-            slip_vector, T_axis_vector, null_axis_vector, P_axis_vector = get_slip_vector_from_full_MT(MT_curr_full_MT) # Get slip vector from DC radiation pattern
-            slip_direction = T_axis_vector # Note - should be = slip_vector, but T axis vector actually gives slip direction at the moment. Not sure if this is because of negative eigenvalues in get_slip_vector_from_full_MT() function.
+            slip_vector, normal_axis_vector, T_axis_vector, null_axis_vector, P_axis_vector = get_slip_vector_from_full_MT(MT_curr_full_MT) # Get slip vector from DC radiation pattern
+            if DC_switch_slip_vector:
+                slip_direction = P_axis_vector # Note - should be = slip_vector, but T axis vector actually gives slip direction at the moment. Not sure if this is because of negative eigenvalues in get_slip_vector_from_full_MT() function.
+            else:
+                slip_direction = T_axis_vector # Note - should be = slip_vector, but T axis vector actually gives slip direction at the moment. Not sure if this is because of negative eigenvalues in get_slip_vector_from_full_MT() function.
             x_array[a] = slip_direction[0]
             y_array[a] = slip_direction[1]
             z_array[a] = slip_direction[2]
@@ -683,7 +695,7 @@ def plot_uncertainty_vector_area_for_full_soln(ax, max_likelihood_vector, x_unce
     
     return ax
 
-def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern_MT=[], MTp_max_prob_value=-1, stations=[], lower_upper_hemi_switch="lower", figure_filename=[], num_MT_solutions_to_plot=20, inversion_type="unconstrained", radiation_MT_phase="P", plot_plane="EN", plot_uncertainty_switch=False, uncertainty_MTs=[], uncertainty_MTp=[], plot_wfs_on_focal_mech_switch=True):
+def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern_MT=[], MTp_max_prob_value=-1, stations=[], lower_upper_hemi_switch="lower", figure_filename=[], num_MT_solutions_to_plot=20, inversion_type="unconstrained", radiation_MT_phase="P", plot_plane="EN", plot_uncertainty_switch=False, uncertainty_MTs=[], uncertainty_MTp=[], plot_wfs_on_focal_mech_switch=True, DC_switch_slip_vector=False):
     """Function to plot full waveform DC constrained inversion result on sphere, then project into 2D using an equal area projection.
     Input MTs are np array of NED MTs in shape [6,n] where n is number of solutions. Also takes optional radiation_pattern_MT, which it will plot a radiation pattern for.
         Note: x and y coordinates switched for plotting to take from NE to EN
@@ -764,10 +776,12 @@ def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern
         elif inversion_type=="DC":
             # Get direction of slip for most likely solution:
             radiation_pattern_full_MT = get_full_MT_array(radiation_pattern_MT)
-            slip_vector, T_axis_vector, null_axis_vector, P_axis_vector = get_slip_vector_from_full_MT(radiation_pattern_full_MT) # Get slip vector from DC radiation pattern
-            max_likelihood_vector = T_axis_vector # Note - should be = slip_vector, but T axis vector actually gives slip direction at the moment. Not sure if this is because of negative eigenvalues in get_slip_vector_from_full_MT() function. (Note: Also same implementation at the moment in get_uncertainty_estimate_bounds_full_soln() for DC inversion type)
-            # Get uncertainty bounds for slip direction:
-            x_uncert_bounds, y_uncert_bounds, z_uncert_bounds, theta_uncert_bounds, phi_uncert_bounds = get_uncertainty_estimate_bounds_full_soln(uncertainty_MTs, uncertainty_MTp, inversion_type, n_data_frac=0.1, use_gau_fit=False)
+            slip_vector, normal_axis_vector, T_axis_vector, null_axis_vector, P_axis_vector = get_slip_vector_from_full_MT(radiation_pattern_full_MT) # Get slip vector from DC radiation pattern
+            if DC_switch_slip_vector:
+                max_likelihood_vector = P_axis_vector # Note - should be = slip_vector, but T axis vector actually gives slip direction at the moment. Not sure if this is because of negative eigenvalues in get_slip_vector_from_full_MT() function.
+            else:
+                max_likelihood_vector = T_axis_vector # Note - should be = slip_vector, but T axis vector actually gives slip direction at the moment. Not sure if this is because of negative eigenvalues in get_slip_vector_from_full_MT() function.            # Get uncertainty bounds for slip direction:
+            x_uncert_bounds, y_uncert_bounds, z_uncert_bounds, theta_uncert_bounds, phi_uncert_bounds = get_uncertainty_estimate_bounds_full_soln(uncertainty_MTs, uncertainty_MTp, inversion_type, n_data_frac=0.1, use_gau_fit=False, DC_switch_slip_vector=DC_switch_slip_vector)
             # And plot slip direction and uncertainty bounds:
             ax = plot_uncertainty_vector_area_for_full_soln(ax, max_likelihood_vector, x_uncert_bounds, y_uncert_bounds, z_uncert_bounds, plot_plane=plot_plane)
                         
@@ -1532,7 +1546,7 @@ def plot_slip_vector_distribution(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0
         plt.show()
         
 
-def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_phase="P", plot_Lune_switch=True, plot_uncertainty_switch=False, plot_wfs_separately_switch=False, plot_multi_medium_greens_func_inv_switch=False, multi_medium_greens_func_inv_separate_phase_amp_ratios=False, plot_absolute_probability_switch=True, plot_wfs_on_focal_mech_switch=True, plot_max_prob_on_Lune_switch=False, plot_das_wfs_switch=False, fs_das=1000.):
+def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_phase="P", plot_Lune_switch=True, plot_uncertainty_switch=False, plot_wfs_separately_switch=False, plot_multi_medium_greens_func_inv_switch=False, multi_medium_greens_func_inv_separate_phase_amp_ratios=False, plot_absolute_probability_switch=True, plot_wfs_on_focal_mech_switch=True, plot_max_prob_on_Lune_switch=False, plot_das_wfs_switch=False, fs_das=1000., DC_switch_slip_vector=False):
     """Function to run main script.
     ------------------ Inputs ------------------
     Required arguments:
@@ -1552,6 +1566,7 @@ def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_ph
     plot_wfs_on_focal_mech_switch - If True, plots waveforms on focal mechanism plot (default is True) (type bool)
     plot_das_wfs_switch - Switch to plot DAS data, if DAS data used in inversion (default is False) (type bool)
     fs_das - Sampling rate of the DAS data (default is 1000.0) (type float)
+    DC_switch_slip_vector - If True, will switch slip vector to the other nodal plane. Default is False. (type bool)
 
     ------------------ Outputs ------------------
     Various outputs as .png files, saved to the directory specified (e.g. "plots/")
@@ -1641,7 +1656,7 @@ def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_ph
         radiation_pattern_MT = MT_max_prob # 6 moment tensor to plot radiation pattern for
         for plot_plane in ["EN","EZ","NZ"]:
             figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+".png")
-            plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern_MT=radiation_pattern_MT, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=1, inversion_type=inversion_type, radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch)
+            plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern_MT=radiation_pattern_MT, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=1, inversion_type=inversion_type, radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch, DC_switch_slip_vector=DC_switch_slip_vector)
         # And plot waveforms separately (if specified):
         if plot_wfs_separately_switch:
             plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png")
