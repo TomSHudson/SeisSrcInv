@@ -101,19 +101,18 @@ def get_arrival_time_data_from_NLLoc_hyp_files(nlloc_hyp_filename):
             # Get arrival time:
             arrival_times_dict['station_arrival_times'][station][phase] = nlloc_hyp_data.phase_data[station][phase]['arrival_time']
             # Get station to event azimuth and takeoff angle:
-            if phase == "P":
-                station_current_azimuth_event_to_sta = nlloc_hyp_data.phase_data[station][phase]['SAzim']
-                station_current_toa_event_to_sta = nlloc_hyp_data.phase_data[station][phase]['RDip']
-                if station_current_azimuth_event_to_sta > 180.:
-                    station_current_azimuth_sta_to_event = 180. - (360. - station_current_azimuth_event_to_sta)
-                elif station_current_azimuth_event_to_sta <= 180.:
-                    station_current_azimuth_sta_to_event = 360. - (180. - station_current_azimuth_event_to_sta)
-                if station_current_toa_event_to_sta > 90.:
-                    station_current_toa_sta_inclination = station_current_toa_event_to_sta - 90.
-                elif station_current_toa_event_to_sta <= 90.:
-                    station_current_toa_sta_inclination = station_current_toa_event_to_sta + 90.
-                arrival_times_dict['azi_takeoff_angles'][station]["P_azimuth_sta_to_event"] = station_current_azimuth_sta_to_event
-                arrival_times_dict['azi_takeoff_angles'][station]["P_toa_sta_inclination"] = station_current_toa_sta_inclination
+            station_current_azimuth_event_to_sta = nlloc_hyp_data.phase_data[station][phase]['SAzim']
+            station_current_toa_event_to_sta = nlloc_hyp_data.phase_data[station][phase]['RDip']
+            if station_current_azimuth_event_to_sta > 180.:
+                station_current_azimuth_sta_to_event = 180. - (360. - station_current_azimuth_event_to_sta)
+            elif station_current_azimuth_event_to_sta <= 180.:
+                station_current_azimuth_sta_to_event = 360. - (180. - station_current_azimuth_event_to_sta)
+            if station_current_toa_event_to_sta > 90.:
+                station_current_toa_sta_inclination = station_current_toa_event_to_sta - 90.
+            elif station_current_toa_event_to_sta <= 90.:
+                station_current_toa_sta_inclination = station_current_toa_event_to_sta + 90.
+            arrival_times_dict['azi_takeoff_angles'][station][phase+"_azimuth_sta_to_event"] = station_current_azimuth_sta_to_event
+            arrival_times_dict['azi_takeoff_angles'][station][phase+"_toa_sta_inclination"] = station_current_toa_sta_inclination
 
     return arrival_times_dict
 
@@ -163,25 +162,24 @@ def get_theoretical_DAS_arrival_time_data(nlloc_hyp_filename, das_stations_filen
             arrival_times_dict['station_arrival_times'][station][phase] = nlloc_hyp_data.origin_time + ((np.sqrt(epi_dist_m**2 + depth_from_surface_m**2) / vels[j]))
 
             # Get station to event azimuth and takeoff angle:
-            if phase == 'P':
-                # Specify azimuth ad toa from event to station:
-                station_current_azimuth_event_to_sta = azim_ab
-                if force_vertical_arrivals:
-                    station_current_toa_event_to_sta = 180. # Force arrival to arrive vertically up (according to nonlinloc nomincature)
-                else:
-                    station_current_toa_event_to_sta = 180. - ((360./(2.*np.pi)) * np.arctan(epi_dist_m / depth_from_surface_m))
-                # And change to station to event:
-                if station_current_azimuth_event_to_sta > 180.:
-                    station_current_azimuth_sta_to_event = 180. - (360. - station_current_azimuth_event_to_sta)
-                elif station_current_azimuth_event_to_sta <= 180.:
-                    station_current_azimuth_sta_to_event = 360. - (180. - station_current_azimuth_event_to_sta)
-                if station_current_toa_event_to_sta > 90.:
-                    station_current_toa_sta_inclination = station_current_toa_event_to_sta - 90.
-                elif station_current_toa_event_to_sta <= 90.:
-                    station_current_toa_sta_inclination = station_current_toa_event_to_sta + 90.
-                arrival_times_dict['azi_takeoff_angles'][station]["P_azimuth_event_to_sta"] = station_current_azimuth_event_to_sta
-                arrival_times_dict['azi_takeoff_angles'][station]["P_azimuth_sta_to_event"] = station_current_azimuth_sta_to_event
-                arrival_times_dict['azi_takeoff_angles'][station]["P_toa_sta_inclination"] = station_current_toa_sta_inclination
+            # Specify azimuth ad toa from event to station:
+            station_current_azimuth_event_to_sta = azim_ab
+            if force_vertical_arrivals:
+                station_current_toa_event_to_sta = 180. # Force arrival to arrive vertically up (according to nonlinloc nomincature)
+            else:
+                station_current_toa_event_to_sta = 180. - ((360./(2.*np.pi)) * np.arctan(epi_dist_m / depth_from_surface_m))
+            # And change to station to event:
+            if station_current_azimuth_event_to_sta > 180.:
+                station_current_azimuth_sta_to_event = 180. - (360. - station_current_azimuth_event_to_sta)
+            elif station_current_azimuth_event_to_sta <= 180.:
+                station_current_azimuth_sta_to_event = 360. - (180. - station_current_azimuth_event_to_sta)
+            if station_current_toa_event_to_sta > 90.:
+                station_current_toa_sta_inclination = station_current_toa_event_to_sta - 90.
+            elif station_current_toa_event_to_sta <= 90.:
+                station_current_toa_sta_inclination = station_current_toa_event_to_sta + 90.
+            arrival_times_dict['azi_takeoff_angles'][station][phase+"_azimuth_event_to_sta"] = station_current_azimuth_event_to_sta
+            arrival_times_dict['azi_takeoff_angles'][station][phase+"_azimuth_sta_to_event"] = station_current_azimuth_sta_to_event
+            arrival_times_dict['azi_takeoff_angles'][station][phase+"_toa_sta_inclination"] = station_current_toa_sta_inclination
     
     return arrival_times_dict
 
@@ -333,8 +331,13 @@ def get_greens_functions_from_file(green_func_dir, station, dist_label, actual_w
         tr_t = st_green_func_tmp.select(channel='HHT')[0]
         del st_green_func_tmp
         gc.collect()
-        back_azi = real_arrival_times_dict['azi_takeoff_angles'][station]["P_azimuth_sta_to_event"]
-        event_inclin_angle_at_station = real_arrival_times_dict['azi_takeoff_angles'][station]["P_toa_sta_inclination"]
+        try:
+            back_azi = real_arrival_times_dict['azi_takeoff_angles'][station]["P_azimuth_sta_to_event"]
+            event_inclin_angle_at_station = real_arrival_times_dict['azi_takeoff_angles'][station]["P_toa_sta_inclination"]
+        except KeyError:
+            # Use S instead of P if P phase pick doesn't exist:
+            back_azi = real_arrival_times_dict['azi_takeoff_angles'][station]["S_azimuth_sta_to_event"]
+            event_inclin_angle_at_station = real_arrival_times_dict['azi_takeoff_angles'][station]["S_toa_sta_inclination"]
         st_LQT = rotate_ZRT_to_LQT(tr_z,tr_r,tr_t,back_azi,event_inclin_angle_at_station)
         # And save:
         st_LQT.select(channel="HHL").write(os.path.join(green_func_dir, "auto_created_"+dist_label+"___"+comp+"."+"l"), format="SAC")
@@ -539,14 +542,24 @@ def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, 
                 tr_z = st_real.select(station=stat,component="Z")[0]
                 tr_r = st_real.select(station=stat,component="R")[0]
                 tr_t = st_real.select(station=stat,component="T")[0]
-                back_azi = real_arrival_times_dict['azi_takeoff_angles'][stat]["P_azimuth_sta_to_event"]
-                event_inclin_angle_at_station = real_arrival_times_dict['azi_takeoff_angles'][stat]["P_toa_sta_inclination"]
+                try:
+                    back_azi = real_arrival_times_dict['azi_takeoff_angles'][stat]["P_azimuth_sta_to_event"]
+                    event_inclin_angle_at_station = real_arrival_times_dict['azi_takeoff_angles'][stat]["P_toa_sta_inclination"]
+                except KeyError:
+                    # Use S instead of P if P phase pick doesn't exist:
+                    back_azi = real_arrival_times_dict['azi_takeoff_angles'][stat]["S_azimuth_sta_to_event"]
+                    event_inclin_angle_at_station = real_arrival_times_dict['azi_takeoff_angles'][stat]["S_toa_sta_inclination"]
                 st_LQT = rotate_ZRT_to_LQT(tr_z,tr_r,tr_t,back_azi,event_inclin_angle_at_station)
                 st_real.append(st_LQT.select(station=stat,component="L")[0])
                 st_real.append(st_LQT.select(station=stat,component="Q")[0])
                 st_real_filt = st_real.copy()
                 st_real_filt.filter('bandpass', freqmin=high_pass_freq, freqmax=low_pass_freq, corners=4, zerophase=False)
-                stat_arrival_time = real_arrival_times_dict["station_arrival_times"][stat]["P"]
+                try:
+                    stat_arrival_time = real_arrival_times_dict["station_arrival_times"][stat]["P"]
+                except KeyError:
+                    # Still process if P arrival doesn't exist:
+                    stat_arrival_time = real_arrival_times_dict["station_arrival_times"][stat]["S"] - 0.5
+                    print('Warning: P arrival doesnt exist for station:', stat, 'therefore using S pick - 0.5 instead.')
                 #st_real_filt.trim(starttime=stat_arrival_time-0.1, endtime=stat_arrival_time+1.0)
                 sampling_rate = st_real_filt[0].stats.sampling_rate
                 st_real_filt.trim(starttime=stat_arrival_time-(50.*upsample_real_data_factor)/sampling_rate, endtime=stat_arrival_time+5.0)
