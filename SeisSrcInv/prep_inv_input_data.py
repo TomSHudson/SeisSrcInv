@@ -428,8 +428,8 @@ def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, 
     vs_das - Approximate S wave velocity assumed for DAS processing, in m/s. Default is 1970. (type: float)
     force_das_vertical_arrivals - Switch to force DAS arrivals to be vertical Default is True, as in anisotropy assumptions (type: bool)
     das_channel - The real data mseed channel to use that represents the DAS axis. Default is '??N'. (type: str)
-    das_azi_from_N - The angle of the DAS cable in degrees from N. Currently only a single float value, but in future, 
-                    hope to implement vertical fibre and multi-direction fibre. (type: float)
+    das_azi_from_N - The angle/s of the DAS cable in degrees from N. Can take a single float value, if a linear fibre, or array of 
+                        floats of lenth <station_labels>, corresponding to angle of each DAS channel. (type: float)
     switch_das_polarity - Option to switch DAS polarity of strain rate data. Default is False. (type: bool)
     """
     # Get real event arrival times:
@@ -496,12 +496,18 @@ def run(station_labels, dist_labels, azi_source_to_stat_labels, green_func_dir, 
                         # Rotate synthetic data into DAS axis coords:
                         green_func_array_q = np.loadtxt(os.path.join(outdir, "green_func_array_MT_"+stat+"_q.txt"), dtype=float)
                         green_func_array_t = np.loadtxt(os.path.join(outdir, "green_func_array_MT_"+stat+"_t.txt"), dtype=float)
+                        # Get das azimuth of current station:
+                        try:
+                            das_azi_from_N_curr_stat = das_azi_from_N[i]
+                        except TypeError:
+                            # Or if only single value specified:
+                            das_azi_from_N_curr_stat = das_azi_from_N
                         if aniso_angle_from_N>=0.:
-                            print('Performing rotation to DAS axis for DAS azimuth of:', das_azi_from_N, 'and anisotropy angle of', aniso_angle_from_N)
+                            print('Performing rotation to DAS axis for DAS azimuth of:', das_azi_from_N_curr_stat, 'and anisotropy angle of', aniso_angle_from_N)
                         else:
-                            print('Performing rotation to DAS axis for DAS azimuth of:', das_azi_from_N, 'deg, and anisotropy angle of', aniso_angle_from_N, 'deg')
+                            print('Performing rotation to DAS axis for DAS azimuth of:', das_azi_from_N_curr_stat, 'deg, and anisotropy angle of', aniso_angle_from_N, 'deg')
                         azi_event_to_sta_from_N = real_arrival_times_dict['azi_takeoff_angles'][stat]["P_azimuth_event_to_sta"]
-                        green_func_array_das_axis = rotate_QT_synths_to_das_axis(green_func_array_q, green_func_array_t, das_azi_from_N, azi_event_to_sta_from_N, aniso_angle_from_N=aniso_angle_from_N, fs=synth_out_fs, aniso_delay_t=aniso_delay_t)
+                        green_func_array_das_axis = rotate_QT_synths_to_das_axis(green_func_array_q, green_func_array_t, das_azi_from_N_curr_stat, azi_event_to_sta_from_N, aniso_angle_from_N=aniso_angle_from_N, fs=synth_out_fs, aniso_delay_t=aniso_delay_t)
                         # And save Greens functions to file:
                         np.savetxt(os.path.join(outdir, "green_func_array_MT_"+stat+"_das_axis.txt"), green_func_array_das_axis)
                         print("Output file:", os.path.join(outdir, "green_func_array_MT_"+stat+"_das_axis.txt"))
