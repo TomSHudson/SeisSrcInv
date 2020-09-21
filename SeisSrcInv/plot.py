@@ -344,6 +344,7 @@ def get_nodal_plane_xyz_coords(mt_in):
     pos_nodalline = bb._nodalline_positive # extract positive nodal plane coords (in 3D x,y,z)
     return neg_nodalline, pos_nodalline
 
+
 def plot_radiation_pattern_for_given_NED_full_MT(ax, radiation_pattern_full_MT, bounding_circle_path, lower_upper_hemi_switch="lower", radiation_MT_phase="P", unconstrained_vs_DC_switch="unconstrained", plot_plane="EN"):
     """Function to plot radiation pattern on axis ax, given 6 MT describing MT to plot radiation pattern for and other args.
     Outputs axis ax with radiation pattern plotted."""
@@ -1546,7 +1547,7 @@ def plot_slip_vector_distribution(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0
         plt.show()
         
 
-def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_phase="P", plot_Lune_switch=True, plot_uncertainty_switch=False, plot_wfs_separately_switch=False, plot_multi_medium_greens_func_inv_switch=False, multi_medium_greens_func_inv_separate_phase_amp_ratios=False, plot_absolute_probability_switch=True, plot_wfs_on_focal_mech_switch=True, plot_max_prob_on_Lune_switch=False, plot_das_wfs_switch=False, fs_das=1000., DC_switch_slip_vector=False):
+def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_phase="P", plot_Lune_switch=True, plot_uncertainty_switch=False, plot_wfs_separately_switch=False, plot_multi_medium_greens_func_inv_switch=False, multi_medium_greens_func_inv_separate_phase_amp_ratios=False, plot_absolute_probability_switch=True, plot_wfs_on_focal_mech_switch=True, plot_max_prob_on_Lune_switch=False, plot_das_wfs_switch=False, fs_das=1000., DC_switch_slip_vector=False, num_MT_solutions_to_plot=1):
     """Function to run main script.
     ------------------ Inputs ------------------
     Required arguments:
@@ -1567,6 +1568,7 @@ def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_ph
     plot_das_wfs_switch - Switch to plot DAS data, if DAS data used in inversion (default is False) (type bool)
     fs_das - Sampling rate of the DAS data (default is 1000.0) (type float)
     DC_switch_slip_vector - If True, will switch slip vector to the other nodal plane. Default is False. (type bool)
+    num_MT_solutions_to_plot - The number of fault plane solutions to plot on the focal sphere. Currently only implemented for DC fault plane plotting. (type int)
 
     ------------------ Outputs ------------------
     Various outputs as .png files, saved to the directory specified (e.g. "plots/")
@@ -1651,12 +1653,14 @@ def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_ph
     elif inversion_type == "DC":
         # And get full MT matrix:
         full_MT_max_prob = get_full_MT_array(MT_max_prob)
+        # Get sampled MT solutions, based upon number of MT solutions to plot:
+        MTs_sample = get_frac_of_MTs_using_MT_probs(MTs, MTp, num_MT_solutions_to_plot)
         # Plot MT solutions and radiation pattern of most likely on sphere:
-        MTs_to_plot = full_MT_max_prob #MTs_max_gau_loc
+        MTs_to_plot = MTs_sample #full_MT_max_prob #MTs_max_gau_loc
         radiation_pattern_MT = MT_max_prob # 6 moment tensor to plot radiation pattern for
         for plot_plane in ["EN","EZ","NZ"]:
             figure_filename = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_"+plot_plane+".png")
-            plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern_MT=radiation_pattern_MT, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=1, inversion_type=inversion_type, radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch, DC_switch_slip_vector=DC_switch_slip_vector)
+            plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern_MT=radiation_pattern_MT, MTp_max_prob_value=MTp_max_prob_value, stations=stations, lower_upper_hemi_switch="upper", figure_filename=figure_filename, num_MT_solutions_to_plot=num_MT_solutions_to_plot, inversion_type=inversion_type, radiation_MT_phase=radiation_MT_phase, plot_plane=plot_plane, plot_uncertainty_switch=plot_uncertainty_switch, uncertainty_MTs=MTs, uncertainty_MTp=MTp, plot_wfs_on_focal_mech_switch=plot_wfs_on_focal_mech_switch, DC_switch_slip_vector=DC_switch_slip_vector)
         # And plot waveforms separately (if specified):
         if plot_wfs_separately_switch:
             plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_separate_wfs"+".png")
