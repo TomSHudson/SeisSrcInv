@@ -67,7 +67,7 @@ def load_MT_dict_from_file(matlab_data_filename):
         uid = FW_dict["uid"]
         MTp = FW_dict["MTp"]
         MTs = FW_dict["MTs"]
-        stations = np.array(FW_dict["stations"])
+        stations = np.array(FW_dict["stations"], dtype=object)
         # And try to get absolute similarity/probability values:
         try:
             MTp_absolute = FW_dict["MTp_absolute"]
@@ -1417,22 +1417,23 @@ def plot_wfs_of_most_likely_soln_separate_plot(stations, wfs_dict, plot_fname):
         # and reorder if have Z,R and T components:
         wfs_component_labels_current_station_sorted, real_wfs_current_station, synth_wfs_current_station = sort_wfs_components_current_station(wfs_component_labels_current_station, real_wfs_current_station, synth_wfs_current_station)
         # And plot:
-        # Setup inner plot for current station:
-        inner_plot_obj = gridspec.GridSpecFromSubplotSpec(len(real_wfs_current_station), 1, subplot_spec=outer_plot_obj[i], wspace=0.1, hspace=0.1)
-        for j in range(len(real_wfs_current_station)):
-            ax_curr = plt.Subplot(fig, inner_plot_obj[j])
-            if j==0:
-                ax_curr.set_title(station_name)
-            ax_curr.plot(real_wfs_current_station[j],c='k', alpha=0.75, linewidth=2.5) # Plot real data
-            ax_curr.plot(synth_wfs_current_station[j],c='#E83313',linestyle="--", alpha=0.75, linewidth=2.0) # Plot synth data
-            ax_curr.set_ylabel(wfs_component_labels_current_station_sorted[j])
-            ax_curr.spines['top'].set_visible(False)
-            ax_curr.spines['right'].set_visible(False)
-            ax_curr.spines['bottom'].set_visible(False)
-            ax_curr.spines['left'].set_visible(False)
-            ax_curr.get_xaxis().set_ticks([])
-            ax_curr.get_yaxis().set_ticks([])
-            fig.add_subplot(ax_curr)
+        if len(real_wfs_current_station) > 0:
+            # Setup inner plot for current station:
+            inner_plot_obj = gridspec.GridSpecFromSubplotSpec(len(real_wfs_current_station), 1, subplot_spec=outer_plot_obj[i], wspace=0.1, hspace=0.1)
+            for j in range(len(real_wfs_current_station)):
+                ax_curr = plt.Subplot(fig, inner_plot_obj[j])
+                if j==0:
+                    ax_curr.set_title(station_name)
+                ax_curr.plot(real_wfs_current_station[j],c='k', alpha=0.75, linewidth=2.5) # Plot real data
+                ax_curr.plot(synth_wfs_current_station[j],c='#E83313',linestyle="--", alpha=0.75, linewidth=2.0) # Plot synth data
+                ax_curr.set_ylabel(wfs_component_labels_current_station_sorted[j])
+                ax_curr.spines['top'].set_visible(False)
+                ax_curr.spines['right'].set_visible(False)
+                ax_curr.spines['bottom'].set_visible(False)
+                ax_curr.spines['left'].set_visible(False)
+                ax_curr.get_xaxis().set_ticks([])
+                ax_curr.get_yaxis().set_ticks([])
+                fig.add_subplot(ax_curr)
         i+=1
     
     # And save figure:
