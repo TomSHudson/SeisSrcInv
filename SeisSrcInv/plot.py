@@ -698,9 +698,17 @@ def plot_uncertainty_vector_area_for_full_soln(ax, max_likelihood_vector, x_unce
 
 def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern_MT=[], MTp_max_prob_value=-1, stations=[], lower_upper_hemi_switch="lower", figure_filename=[], num_MT_solutions_to_plot=20, inversion_type="unconstrained", radiation_MT_phase="P", plot_plane="EN", plot_uncertainty_switch=False, uncertainty_MTs=[], uncertainty_MTp=[], plot_wfs_on_focal_mech_switch=True, DC_switch_slip_vector=False):
     """Function to plot full waveform DC constrained inversion result on sphere, then project into 2D using an equal area projection.
-    Input MTs are np array of NED MTs in shape [6,n] where n is number of solutions. Also takes optional radiation_pattern_MT, which it will plot a radiation pattern for.
-        Note: x and y coordinates switched for plotting to take from NE to EN
-        Note: stations is a dictionary containing station info."""
+    Input MTs are np array of NED MTs in shape [6,n] where n is number of solutions. Also takes optional radiation_pattern_MT, which 
+    it will plot a radiation pattern for.
+    Note: x and y coordinates switched for plotting to take from NE to EN
+    Note: stations is a dictionary containing station info.
+    Arguments:
+    Required:
+    MTs_to_plot - Numpy array of the moment tensor solutions to plot from an inversion. Array is of shape 6 x N where N is the number 
+                    of solutions and the 6-array are the 6 components in the order: Mxx, Myy, Mzz, Mxy, Mxz, Myz.  
+    
+    
+    """
     
     # Setup figure:
     fig = plt.figure(figsize=(6,6))
