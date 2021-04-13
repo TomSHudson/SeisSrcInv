@@ -696,7 +696,7 @@ def plot_uncertainty_vector_area_for_full_soln(ax, max_likelihood_vector, x_unce
     
     return ax
 
-def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern_MT=[], MTp_max_prob_value=-1, stations=[], lower_upper_hemi_switch="lower", figure_filename=[], num_MT_solutions_to_plot=20, inversion_type="unconstrained", radiation_MT_phase="P", plot_plane="EN", plot_uncertainty_switch=False, uncertainty_MTs=[], uncertainty_MTp=[], plot_wfs_on_focal_mech_switch=True, DC_switch_slip_vector=False):
+def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern_MT=[], MTp_max_prob_value=-1, stations=[], lower_upper_hemi_switch="lower", figure_filename=[], num_MT_solutions_to_plot=20, inversion_type="unconstrained", radiation_MT_phase="P", plot_plane="EN", plot_uncertainty_switch=False, uncertainty_MTs=[], uncertainty_MTp=[], plot_wfs_on_focal_mech_switch=True, DC_switch_slip_vector=False, fig=None, ax=None):
     """Function to plot full waveform DC constrained inversion result on sphere, then project into 2D using an equal area projection.
     Input MTs are np array of NED MTs in shape [6,n] where n is number of solutions. Also takes optional radiation_pattern_MT, which 
     it will plot a radiation pattern for.
@@ -705,14 +705,37 @@ def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern
     Arguments:
     Required:
     MTs_to_plot - Numpy array of the moment tensor solutions to plot from an inversion. Array is of shape 6 x N where N is the number 
-                    of solutions and the 6-array are the 6 components in the order: Mxx, Myy, Mzz, Mxy, Mxz, Myz.  
-    
-    
+                    of solutions and the 6-array are the 6 components in the order: Mxx, Myy, Mzz, Mxy, Mxz, Myz.  (np array)
+    wfs_dict - A dictionary containing the waveforms to to plot. 
+    Optional:
+    radiation_pattern_MT - The moment tensor solution to plot as a radiation pattern. An array of length 6, comprising of: Mxx, Myy, Mzz,
+                             Mxy, Mxz, Myz. Default is [] which means the code doesn't use this and plots nodal planes for all solutions 
+                             but no radiation pattern. (np array)
+    MTp_max_prob_value - The similarity value/max. probability of the solution. Default is -1, and if negative then it is not used. (float)
+    stations - If given, plots stations on focal sphere. Am object containing the station information. Of a very specific format, 
+                so see examples for more details. (python array object of specific format)
+    lower_upper_hemi_switch - Can be "lower" or "upper". Plots a lower or upper hemisphere projection, respectively. (str)
+    figure_filename - Filename of the figure. If not specified, will not save a figure. (str)
+    num_MT_solutions_to_plot - Number of moment tensor solutions from MTs_to_plot to plot. Default is 20. (int)
+    inversion_type - The inversion type so that can plot the correct radiation pattern and associated information. Types are as in the 
+                    main SeisSrcInv inversion code, i.e. "unconstrained", "DC", "single_force" etc.
+    radiation_MT_phase="P"
+    plot_plane="EN"
+    plot_uncertainty_switch=False
+    uncertainty_MTs=[]
+    uncertainty_MTp=[]
+    plot_wfs_on_focal_mech_switch=True
+    DC_switch_slip_vector=False
     """
     
     # Setup figure:
-    fig = plt.figure(figsize=(6,6))
-    ax = fig.add_subplot(111) #projection="3d")
+    if not fig:
+        if not ax:
+            fig = plt.figure(figsize=(6,6))
+            ax = fig.add_subplot(111) #projection="3d")
+        else:
+            print("Error: fig and ax must be both passed if either is passed.")
+            sys.exit()
     
     # Add some settings for main figure:
     ax.set_xlabel("E")
@@ -1002,7 +1025,13 @@ def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern
     if not len(figure_filename) == 0:
         plt.savefig(figure_filename, dpi=600)
     else:
-        plt.show()
+        if not fig:
+            if not ax:
+                plt.show()
+    
+    if fig:
+        if ax:
+            return fig, ax 
         
 def plot_prob_distribution_DC_vs_single_force(MTs, MTp, figure_filename=[], inversion_type=""):
     """Function to get the probability distribution based on all samples for % DC vs. single force (which is the final value in MTs). Input is 10xn array of moment tensor samples and a length n array of their associated probability. Output is results plotted and shown to display or saved to file."""
