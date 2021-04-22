@@ -1502,6 +1502,12 @@ def plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=1000
     axes[0].pcolormesh(X, T, real_wfs, cmap='RdBu', vmin=-max_amp, vmax=max_amp)
     axes[1].pcolormesh(X, T, synth_wfs, cmap='RdBu', vmin=-max_amp, vmax=max_amp)
     axes[2].pcolormesh(X, T, real_wfs - synth_wfs, cmap='RdBu', vmin=-max_amp, vmax=max_amp)
+
+    # And invert y-axis (for consistancy with other DAS studies):
+    axes[0].invert_yaxis()
+    axes[1].invert_yaxis()
+    axes[2].invert_yaxis()
+
     # Do additional labelling:
     for i in range(3):
         axes[i].set_xlabel('Channel no.')
