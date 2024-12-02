@@ -758,7 +758,7 @@ def plot_full_waveform_result_beachball(MTs_to_plot, wfs_dict, radiation_pattern
     # Add similarity value to plot, if supplied:
     if plot_uncertainty_switch:
         if MTp_max_prob_value>=0.0:
-            plt.title("Similarity: "+np.str(MTp_max_prob_value))
+            plt.title("Similarity: "+str(MTp_max_prob_value))
     
     # Setup bounding circle and create bounding path from circle:
     ax, bounding_circle_path = create_and_plot_bounding_circle_and_path(ax)
@@ -1481,7 +1481,6 @@ def plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=1000
     """Function to plot waveforms for the most likely inversion solution for DAS data and save as separate plot."""
     # Get real and synth waveform data:
     stations_to_plot = list(wfs_dict.keys())
-    print(stations_to_plot)
     real_wfs = np.zeros( (len(wfs_dict[stations_to_plot[0]]['real_wf']), len(stations_to_plot)) )
     for i in range(len(stations_to_plot)):
         real_wfs[:,i] = wfs_dict[stations_to_plot[i]]['real_wf']
