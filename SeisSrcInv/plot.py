@@ -1230,16 +1230,7 @@ def equal_angle_stereographic_projection_conv_YZ_plane(x,y,z):
 def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, figure_filename=[], plot_max_prob_on_Lune=False):
     """Function to plot Lune plot for certain inversions (if Lune plot is relevent, i.e. not DC constrained or single-force constrained).
     Will plot sampled MT solutions on Lune, binned. Will also fit gaussian to this and return the maximum location of the gaussian and the contour coordinates. Also outputs saved figure."""
-    
-    # Get sample of MT solutions for fitting Gaussian to:
-    MTs_sample, MTp_sample = get_frac_of_MTs_using_MT_probs(MTs, MTp, frac_to_sample, return_MTp_samples_switch=True)
-    
-    # Get bin values for delta-gamma space (for plotting Lune):
-    bin_value_labels_delta, bin_value_labels_gamma, bins_delta_gamma, max_prob_bins_delta_gamma, num_samples_in_bins_delta_gamma = get_binned_MT_solutions_by_delta_gamma_dict(MTs_sample, MTp_sample)
-    
-    # And plot:
-    print("Plotting Lune with fitted Gaussian")
-    # Set up figure:
+    # Setup Lune figure:
     fig = plt.figure(figsize=(8,8))
     ax = fig.add_subplot(111)
     # Plot major gridlines:
@@ -1272,53 +1263,65 @@ def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, figure_filename=
         Y_range,Z_range = equal_angle_stereographic_projection_conv_YZ_plane(x,y,z)
         ax.plot(Y_range,Z_range, color="black", linestyle="--", alpha=0.5)
 
-    # And plot binned data, colored by bin value:
-    # Flatten data with respect to biased sampling due to flat distribution in spherical space rather than Lune space:
-    # bins_delta_gamma = bins_delta_gamma/num_samples_in_bins_delta_gamma
-    # Normallise data:
-    if plot_max_prob_on_Lune:
-        bins_delta_gamma_normallised = max_prob_bins_delta_gamma/np.max(max_prob_bins_delta_gamma)
-        # Remove zero values:
-        bins_delta_gamma_normallised[bins_delta_gamma_normallised==0.] = np.nan
-        # bins_delta_gamma_normallised = (bins_delta_gamma_normallised-np.min(np.isfinite(bins_delta_gamma_normallised)))/(np.max(np.isfinite(bins_delta_gamma_normallised)) - np.min(np.isfinite(bins_delta_gamma_normallised)))
-    else:
-        bins_delta_gamma_normallised = bins_delta_gamma/np.max(bins_delta_gamma) # Normalise data
-    # Loop over binned data points:
-    Y_all = []
-    Z_all = []
-    c_all = []
-    for i in range(len(bin_value_labels_delta)):
-        for j in range(len(bin_value_labels_gamma)):
-            delta = bin_value_labels_delta[i]
-            gamma = bin_value_labels_gamma[j]
-            # And plot data coord (if bin greater than 0):
-            if bins_delta_gamma_normallised[i,j]>0.:
-                x,y,z = convert_spherical_coords_to_cartesian_coords(1.,(np.pi/2.) - delta,gamma)
-                Y,Z = equal_angle_stereographic_projection_conv_YZ_plane(x,y,z)
-                # ax.scatter(Y,Z, color = matplotlib.cm.inferno(int(bins_delta_gamma_normallised[i,j]*256)), alpha=0.6,s=50)
-                Y_all.append(Y)
-                Z_all.append(Z)
-                c_all.append(bins_delta_gamma_normallised[i,j])
-    ax.scatter(Y_all,Z_all, c=c_all, cmap="inferno", alpha=0.6,s=50)
     
-    # # Plot maximum location and associated contours associated with Guassian fit:
-    # # Plot maximum location:
-    # delta = max_bin_delta_gamma_values[0]
-    # gamma = max_bin_delta_gamma_values[1]
-    # x,y,z = convert_spherical_coords_to_cartesian_coords(1.,(np.pi/2.) - delta,gamma)
-    # Y,Z = equal_angle_stereographic_projection_conv_YZ_plane(x,y,z)
-    # ax.scatter(Y,Z, color = "green", alpha=1.0,s=50, marker="X")
-    # # And plot 1 stdev contour:
-    # contour_bin_delta_values_sorted = []
-    # contour_bin_gamma_values_sorted = []
-    # for i in range(len(contour_bin_delta_gamma_values_sorted)):
-    #     contour_bin_delta_values_sorted.append(contour_bin_delta_gamma_values_sorted[i][0])
-    #     contour_bin_gamma_values_sorted.append(contour_bin_delta_gamma_values_sorted[i][1])
-    # delta = np.array(contour_bin_delta_values_sorted)
-    # gamma = np.array(contour_bin_gamma_values_sorted)
-    # x,y,z = convert_spherical_coords_to_cartesian_coords(1.,(np.pi/2.) - delta,gamma)
-    # Y,Z = equal_angle_stereographic_projection_conv_YZ_plane(x,y,z)
-    # ax.plot(Y,Z, color = "green", alpha=0.5)
+    # Plot Lune pdf if input data specified:
+    if len(MTp) > 0:
+        # Get sample of MT solutions for fitting Gaussian to:
+        MTs_sample, MTp_sample = get_frac_of_MTs_using_MT_probs(MTs, MTp, frac_to_sample, return_MTp_samples_switch=True)
+        
+        # Get bin values for delta-gamma space (for plotting Lune):
+        bin_value_labels_delta, bin_value_labels_gamma, bins_delta_gamma, max_prob_bins_delta_gamma, num_samples_in_bins_delta_gamma = get_binned_MT_solutions_by_delta_gamma_dict(MTs_sample, MTp_sample)
+        
+        # And plot:
+        print("Plotting Lune with fitted Gaussian")
+
+        # And plot binned data, colored by bin value:
+        # Flatten data with respect to biased sampling due to flat distribution in spherical space rather than Lune space:
+        # bins_delta_gamma = bins_delta_gamma/num_samples_in_bins_delta_gamma
+        # Normallise data:
+        if plot_max_prob_on_Lune:
+            bins_delta_gamma_normallised = max_prob_bins_delta_gamma/np.max(max_prob_bins_delta_gamma)
+            # Remove zero values:
+            bins_delta_gamma_normallised[bins_delta_gamma_normallised==0.] = np.nan
+            # bins_delta_gamma_normallised = (bins_delta_gamma_normallised-np.min(np.isfinite(bins_delta_gamma_normallised)))/(np.max(np.isfinite(bins_delta_gamma_normallised)) - np.min(np.isfinite(bins_delta_gamma_normallised)))
+        else:
+            bins_delta_gamma_normallised = bins_delta_gamma/np.max(bins_delta_gamma) # Normalise data
+        # Loop over binned data points:
+        Y_all = []
+        Z_all = []
+        c_all = []
+        for i in range(len(bin_value_labels_delta)):
+            for j in range(len(bin_value_labels_gamma)):
+                delta = bin_value_labels_delta[i]
+                gamma = bin_value_labels_gamma[j]
+                # And plot data coord (if bin greater than 0):
+                if bins_delta_gamma_normallised[i,j]>0.:
+                    x,y,z = convert_spherical_coords_to_cartesian_coords(1.,(np.pi/2.) - delta,gamma)
+                    Y,Z = equal_angle_stereographic_projection_conv_YZ_plane(x,y,z)
+                    # ax.scatter(Y,Z, color = matplotlib.cm.inferno(int(bins_delta_gamma_normallised[i,j]*256)), alpha=0.6,s=50)
+                    Y_all.append(Y)
+                    Z_all.append(Z)
+                    c_all.append(bins_delta_gamma_normallised[i,j])
+        ax.scatter(Y_all,Z_all, c=c_all, cmap="inferno", alpha=0.6,s=50)
+            
+        # # Plot maximum location and associated contours associated with Guassian fit:
+        # # Plot maximum location:
+        # delta = max_bin_delta_gamma_values[0]
+        # gamma = max_bin_delta_gamma_values[1]
+        # x,y,z = convert_spherical_coords_to_cartesian_coords(1.,(np.pi/2.) - delta,gamma)
+        # Y,Z = equal_angle_stereographic_projection_conv_YZ_plane(x,y,z)
+        # ax.scatter(Y,Z, color = "green", alpha=1.0,s=50, marker="X")
+        # # And plot 1 stdev contour:
+        # contour_bin_delta_values_sorted = []
+        # contour_bin_gamma_values_sorted = []
+        # for i in range(len(contour_bin_delta_gamma_values_sorted)):
+        #     contour_bin_delta_values_sorted.append(contour_bin_delta_gamma_values_sorted[i][0])
+        #     contour_bin_gamma_values_sorted.append(contour_bin_delta_gamma_values_sorted[i][1])
+        # delta = np.array(contour_bin_delta_values_sorted)
+        # gamma = np.array(contour_bin_gamma_values_sorted)
+        # x,y,z = convert_spherical_coords_to_cartesian_coords(1.,(np.pi/2.) - delta,gamma)
+        # Y,Z = equal_angle_stereographic_projection_conv_YZ_plane(x,y,z)
+        # ax.plot(Y,Z, color = "green", alpha=0.5)
     
     # Plot location of maximum probability single MT solution (passed as argument):
     if len(six_MT_max_prob)>0:
@@ -1326,7 +1329,7 @@ def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, figure_filename=
         # And plot data coord:
         x,y,z = convert_spherical_coords_to_cartesian_coords(1.,(np.pi/2.) - delta,gamma)
         Y,Z = equal_angle_stereographic_projection_conv_YZ_plane(x,y,z)
-        ax.scatter(Y,Z, c="gold", alpha=0.8,s=250, marker="*")
+        ax.scatter(Y,Z, c="gold", alpha=0.8,s=250, marker="*", zorder=100)
     
     # And Finish plot:
     # Plot labels for various defined locations (locations from Tape and Tape 2012, table 1):
