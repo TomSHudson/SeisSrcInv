@@ -1480,7 +1480,7 @@ def plot_wfs_of_most_likely_soln_separate_plot(stations, wfs_dict, plot_fname):
     plt.savefig(plot_fname, dpi=300)
 
 
-def plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=1000.):
+def plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=1000., norm_all_das=False):
     """Function to plot waveforms for the most likely inversion solution for DAS data and save as separate plot."""
     # Get real and synth waveform data:
     stations_to_plot = list(wfs_dict.keys())
@@ -1497,13 +1497,17 @@ def plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=1000
     # Get spatial and time gridded coords:
     X, T = np.meshgrid( 10.0*np.arange(real_wfs.shape[1]), np.arange(real_wfs.shape[0])/fs )
 
-    # Find max. value:
-    max_amp = np.max(np.array([np.max(np.abs(real_wfs)), np.max(np.abs(synth_wfs))]))
-
     # And plot data:
-    axes[0].pcolormesh(X, T, real_wfs, cmap='RdBu', vmin=-max_amp, vmax=max_amp)
-    axes[1].pcolormesh(X, T, synth_wfs, cmap='RdBu', vmin=-max_amp, vmax=max_amp)
-    axes[2].pcolormesh(X, T, real_wfs - synth_wfs, cmap='RdBu', vmin=-max_amp, vmax=max_amp)
+    if norm_all_das:
+        max_amp = 1.05
+        axes[0].pcolormesh(X, T, real_wfs / np.max(np.abs(real_wfs)), cmap='RdBu', vmin=-max_amp, vmax=max_amp)
+        axes[1].pcolormesh(X, T, synth_wfs / np.max(np.abs(synth_wfs)), cmap='RdBu', vmin=-max_amp, vmax=max_amp)
+        axes[2].pcolormesh(X, T, (real_wfs  / np.max(np.abs(real_wfs))) - (synth_wfs  / np.max(np.abs(synth_wfs))), cmap='RdBu', vmin=-max_amp, vmax=max_amp)
+    else:
+        max_amp = np.max(np.array([np.max(np.abs(real_wfs)), np.max(np.abs(synth_wfs))]))
+        axes[0].pcolormesh(X, T, real_wfs, cmap='RdBu', vmin=-max_amp, vmax=max_amp)
+        axes[1].pcolormesh(X, T, synth_wfs, cmap='RdBu', vmin=-max_amp, vmax=max_amp)
+        axes[2].pcolormesh(X, T, real_wfs - synth_wfs, cmap='RdBu', vmin=-max_amp, vmax=max_amp)
 
     # And invert y-axis (for consistancy with other DAS studies):
     axes[0].invert_yaxis()
@@ -1593,7 +1597,7 @@ def plot_slip_vector_distribution(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0
         plt.show()
         
 
-def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_phase="P", plot_Lune_switch=True, plot_uncertainty_switch=False, plot_wfs_separately_switch=False, plot_multi_medium_greens_func_inv_switch=False, multi_medium_greens_func_inv_separate_phase_amp_ratios=False, plot_absolute_probability_switch=True, plot_wfs_on_focal_mech_switch=True, lower_upper_hemi_switch="upper", plot_max_prob_on_Lune_switch=False, plot_das_wfs_switch=False, fs_das=1000., DC_switch_slip_vector=False, num_MT_solutions_to_plot=1):
+def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_phase="P", plot_Lune_switch=True, plot_uncertainty_switch=False, plot_wfs_separately_switch=False, plot_multi_medium_greens_func_inv_switch=False, multi_medium_greens_func_inv_separate_phase_amp_ratios=False, plot_absolute_probability_switch=True, plot_wfs_on_focal_mech_switch=True, lower_upper_hemi_switch="upper", plot_max_prob_on_Lune_switch=False, plot_das_wfs_switch=False, fs_das=1000., norm_all_das=False, DC_switch_slip_vector=False, num_MT_solutions_to_plot=1):
     """Function to run main script.
     ------------------ Inputs ------------------
     Required arguments:
@@ -1614,6 +1618,7 @@ def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_ph
     lower_upper_hemi_switch - Controls plotting of lower or upper hemisphere plot. Can be lower or upper. Default is upper. (str)
     plot_das_wfs_switch - Switch to plot DAS data, if DAS data used in inversion (default is False) (type bool)
     fs_das - Sampling rate of the DAS data (default is 1000.0) (type float)
+    norm_all_das - If True, normalise all DAS data equally between model and data (so only view relative differences)
     DC_switch_slip_vector - If True, will switch slip vector to the other nodal plane. Default is False. (type bool)
     num_MT_solutions_to_plot - The number of fault plane solutions to plot on the focal sphere. Currently only implemented for DC fault plane plotting. (type int)
 
@@ -1695,7 +1700,7 @@ def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_ph
         # And plot DAS waveforms, if specified:
         if plot_das_wfs_switch:
             plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_DAS_wfs"+".png")
-            plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=1000.)
+            plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=fs_das, norm_all_das=norm_all_das)
         
     elif inversion_type == "DC":
         # And get full MT matrix:
@@ -1715,7 +1720,7 @@ def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_ph
         # And plot DAS waveforms, if specified:
         if plot_das_wfs_switch:
             plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_DAS_wfs"+".png")
-            plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=1000.)
+            plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=fs_das, norm_all_das=norm_all_das)
     
     elif inversion_type == "single_force":
         full_MT_max_prob = MT_max_prob
@@ -1732,7 +1737,7 @@ def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_ph
         # And plot DAS waveforms, if specified:
         if plot_das_wfs_switch:
             plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_DAS_wfs"+".png")
-            plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=1000.)
+            plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=fs_das, norm_all_das=norm_all_das)
     
     elif inversion_type == "DC_single_force_couple":
         full_MT_max_prob = get_full_MT_array(MT_max_prob[0:6])
@@ -1755,7 +1760,7 @@ def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_ph
         # And plot DAS waveforms, if specified:
         if plot_das_wfs_switch:
             plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_DAS_wfs"+".png")
-            plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=1000.)
+            plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=fs_das, norm_all_das=norm_all_das)
 
     elif inversion_type == "DC_single_force_no_coupling":
         full_MT_max_prob = get_full_MT_array(MT_max_prob[0:6])
@@ -1778,7 +1783,7 @@ def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_ph
         # And plot DAS waveforms, if specified:
         if plot_das_wfs_switch:
             plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_DAS_wfs"+".png")
-            plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=1000.)
+            plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=fs_das, norm_all_das=norm_all_das)
 
     elif inversion_type == "DC_crack_couple":
         full_MT_max_prob = get_full_MT_array(MT_max_prob[0:6])
@@ -1798,7 +1803,7 @@ def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_ph
         # And plot DAS waveforms, if specified:
         if plot_das_wfs_switch:
             plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_DAS_wfs"+".png")
-            plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=1000.)
+            plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=fs_das, norm_all_das=norm_all_das)
 
     elif inversion_type == "single_force_crack_no_coupling":
         full_MT_max_prob = get_full_MT_array(MT_max_prob[0:6])
@@ -1824,7 +1829,7 @@ def run(inversion_type, event_uid, datadir, plot_outdir='plots', radiation_MT_ph
         # And plot DAS waveforms, if specified:
         if plot_das_wfs_switch:
             plot_fname = os.path.join(plot_outdir, MT_data_filename.split("/")[-1].split(".")[0]+"_DAS_wfs"+".png")
-            plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=1000.)
+            plot_wfs_of_most_likely_soln_separate_plot_das(wfs_dict, plot_fname, fs=fs_das, norm_all_das=norm_all_das)
 
 
     print("Full MT (max prob.):")
