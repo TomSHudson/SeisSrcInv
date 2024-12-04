@@ -334,7 +334,7 @@ def generate_random_MT_Lune_samp():
     # Get eigenvalues from delta,gamma,beta:
     lune_space_uvw_vec = np.vstack(([np.cos(gamma)*np.sin(beta)], [np.sin(gamma)*np.sin(beta)], [np.cos(beta)]))
     lambda_vec = np.dot(np.transpose(U_rot_matrix), lune_space_uvw_vec) # (See Tape and Tape 2012, eq. 20)
-    Lune_space_MT = np.vstack(([lambda_vec[0],0.,0.],[0.,lambda_vec[1],0.], [0.,0.,lambda_vec[2]])) # MT with principle axes in u,v,w Lune space
+    Lune_space_MT = np.vstack(([lambda_vec[0,0],0.,0.],[0.,lambda_vec[1,0],0.], [0.,0.,lambda_vec[2,0]])) # MT with principle axes in u,v,w Lune space
     # 2. Get theta and phi angles to rotate Lune_space_MT by to randomly rotate into x,y,z space:
     # Get a random sample 3-vector on a 3-unit sphere to use to calculate random theta and phi rotation angles:
     a_unnormalised = np.array([np.random.normal(loc=0.0, scale=1.0), np.random.normal(loc=0.0, scale=1.0), np.random.normal(loc=0.0, scale=1.0)], dtype=float) # Generate 3 indepdendent normal deviates
