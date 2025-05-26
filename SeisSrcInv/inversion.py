@@ -267,7 +267,7 @@ def rot_single_force_by_theta_phi(single_force_vector, theta=np.pi, phi=np.pi):
     return single_force_vector_second_rot
 
 def perform_inversion(real_data_array, green_func_array):
-    """Function to perform inversion using real data and greens functions to obtain the moment tensor. (See Walter 2009 thesis, Appendix C for theoretical details).
+    """Function to perform least sqauraes inversion using real data and greens functions to obtain the moment tensor. (See Walter 2009 thesis, Appendix C for theoretical details).
     Inputs are: real_data_array - array of size (k,t_samples), containing real data to invert for; green_func_array - array of size (k, n_mt_comp, t_samples), containing the greens function data for the various mt components and each station (where k is the number of stations*station components to invert for, t_samples is the number of time samples, and n_mt_comp is the number of moment tensor components specficied in the greens functions array).
     Outputs are: M - tensor of length n_mt_comp, containing the moment tensor (or single force) inverted for."""
     # Perform the inversion:
@@ -275,6 +275,55 @@ def perform_inversion(real_data_array, green_func_array):
     G =  np.transpose(np.vstack(np.hstack(list(green_func_array[:])))) # equivilent to matlab [green_func_array[0]; green_func_array[1]; green_func_array[2]]
     M, res, rank, sing_values_G = np.linalg.lstsq(G,D) # Equivilent to M = G\D; for G not square. If G is square, use linalg.solve(G,D)
     return M
+
+# @jit(nopython=True)
+# def perform_gridsearch_inversion_CORE_(D, G, search_dim=10):
+#     """Function to perform inversion via gridsearch, using real data and greens functions to obtain the moment tensor. (See Walter 2009 thesis, Appendix C for theoretical details).
+#     Inputs are: real_data_array - array of size (k,t_samples), containing real data to invert for; green_func_array - array of size (k, n_mt_comp, t_samples), containing the greens function data for the various mt components and each station (where k is the number of stations*station components to invert for, t_samples is the number of time samples, and n_mt_comp is the number of moment tensor components specficied in the greens functions array).
+#     Outputs are: M - tensor of length n_mt_comp, containing the moment tensor (or single force) inverted for."""
+#     # Perform the inversion:
+#     # D = np.transpose(np.array([np.hstack(list(real_data_array[:]))])) # equivilent to matlab [real_data_array[0]; real_data_array[1]; real_data_array[2]]
+#     # G =  np.transpose(np.vstack(np.hstack(list(green_func_array[:])))) # equivilent to matlab [green_func_array[0]; green_func_array[1]; green_func_array[2]]
+#     misfits_model = np.zeros((search_dim,search_dim,search_dim,search_dim,search_dim,search_dim))
+    
+#     # Change amplitude of G vs. D:
+#     # (to cope with numerical issues with small amplitudes)
+#     m_curr = np.ones(6).reshape(6,1)
+#     G_mult_m = G.dot(m_curr) # equivilent of np.matmul()
+#     amp_fac = np.abs(np.sum(D) / np.sum(G_mult_m))
+    
+#     # Search over grid demensions:
+#     mii_search_space = np.linspace(-1.,1.,search_dim)
+#     for i in range(search_dim):
+#         for j in range(search_dim):
+#             for k in range(search_dim):
+#                 for l in range(search_dim):
+#                     for m in range(search_dim):
+#                         for n in range(search_dim):
+#                             m_curr = np.array([mii_search_space[i],mii_search_space[j],mii_search_space[k],mii_search_space[l],mii_search_space[m],mii_search_space[n]]).reshape(6,1)
+#                             G_mult_m = G.dot(m_curr) # equivilent of np.matmul()
+#                             misfits_model[i,j,k,l,m,n] = np.sum((D - (amp_fac * G_mult_m))**2)
+#                             ## misfits_model[i,j,k,l,m,n] = np.sqrt(np.sum(D - np.matmul(G, np.array([mii_search_space[i],mii_search_space[j],mii_search_space[k],mii_search_space[l],mii_search_space[m],mii_search_space[n]]).reshape(6,1)))) # where np.array([i,j,k,l,m,n]) is M
+
+#     # And find optimal misfit and corresponding model:
+#     min_misfit = np.min(misfits_model)
+#     min_misfit_indices = np.where(misfits_model == min_misfit)
+#     # Get the optimal model:
+#     M_opt = np.array([mii_search_space[min_misfit_indices[0][0]], mii_search_space[min_misfit_indices[1][0]], mii_search_space[min_misfit_indices[2][0]], mii_search_space[min_misfit_indices[3][0]], mii_search_space[min_misfit_indices[4][0]], mii_search_space[min_misfit_indices[5][0]]])
+
+#     return M_opt, misfits_model #M_opt
+
+# def perform_gridsearch_inversion(real_data_array, green_func_array, search_dim=10):
+#     """Function to perform inversion via gridsearch, using real data and greens functions to obtain the moment tensor. (See Walter 2009 thesis, Appendix C for theoretical details).
+#     Inputs are: real_data_array - array of size (k,t_samples), containing real data to invert for; green_func_array - array of size (k, n_mt_comp, t_samples), containing the greens function data for the various mt components and each station (where k is the number of stations*station components to invert for, t_samples is the number of time samples, and n_mt_comp is the number of moment tensor components specficied in the greens functions array).
+#     Outputs are: M - tensor of length n_mt_comp, containing the moment tensor (or single force) inverted for."""
+#     # Prep. the data structures:
+#     D = np.transpose(np.array([np.hstack(list(real_data_array[:]))])) # equivilent to matlab [real_data_array[0]; real_data_array[1]; real_data_array[2]]
+#     G =  np.transpose(np.vstack(np.hstack(list(green_func_array[:])))) # equivilent to matlab [green_func_array[0]; green_func_array[1]; green_func_array[2]]
+#     # Perform the inversion:
+#     M_opt, misfits_model = perform_gridsearch_inversion_CORE_(D, G, search_dim=search_dim)
+
+#     return M_opt, misfits_model #M_opt
 
 
 def forward_model(green_func_array, M):
