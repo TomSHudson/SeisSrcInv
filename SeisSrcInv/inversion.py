@@ -267,7 +267,7 @@ def rot_single_force_by_theta_phi(single_force_vector, theta=np.pi, phi=np.pi):
     single_force_vector_second_rot = np.dot(rot_phi_matrix, single_force_vector_first_rot)
     return single_force_vector_second_rot
 
-def perform_inversion(real_data_array, green_func_array):
+def perform_inversion(real_data_array, green_func_array, return_uncorr_cov_matrix=False):
     """Function to perform least sqauraes inversion using real data and greens functions to obtain the moment tensor. (See Walter 2009 thesis, Appendix C for theoretical details).
     Inputs are: real_data_array - array of size (k,t_samples), containing real data to invert for; green_func_array - array of size (k, n_mt_comp, t_samples), containing the greens function data for the various mt components and each station (where k is the number of stations*station components to invert for, t_samples is the number of time samples, and n_mt_comp is the number of moment tensor components specficied in the greens functions array).
     Outputs are: M - tensor of length n_mt_comp, containing the moment tensor (or single force) inverted for."""
@@ -275,7 +275,15 @@ def perform_inversion(real_data_array, green_func_array):
     D = np.transpose(np.array([np.hstack(list(real_data_array[:]))])) # equivilent to matlab [real_data_array[0]; real_data_array[1]; real_data_array[2]]
     G =  np.transpose(np.vstack(np.hstack(list(green_func_array[:])))) # equivilent to matlab [green_func_array[0]; green_func_array[1]; green_func_array[2]]
     M, res, rank, sing_values_G = np.linalg.lstsq(G,D) # Equivilent to M = G\D; for G not square. If G is square, use linalg.solve(G,D)
-    return M
+    if return_uncorr_cov_matrix:
+        var = res / (len(D) - len(M))
+        # cov_M = np.zeros((6,6))
+        # np.fill_diagonal(cov_M, vars)
+        GtG_inv = np.linalg.inv(G.T @ G)
+        cov_M = var * GtG_inv
+        return M, cov_M
+    else:
+        return M
 
 
 def perform_inversion_lsq_with_posterior(real_data_array, green_func_array, cov_data, cov_model_prior, m_prior):
