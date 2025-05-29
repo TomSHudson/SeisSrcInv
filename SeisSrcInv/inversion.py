@@ -36,6 +36,7 @@ import random # For entirely random number generation
 import math
 import multiprocessing
 from numba import jit
+import gc
 
 
 # Specify parameters:
@@ -275,6 +276,39 @@ def perform_inversion(real_data_array, green_func_array):
     G =  np.transpose(np.vstack(np.hstack(list(green_func_array[:])))) # equivilent to matlab [green_func_array[0]; green_func_array[1]; green_func_array[2]]
     M, res, rank, sing_values_G = np.linalg.lstsq(G,D) # Equivilent to M = G\D; for G not square. If G is square, use linalg.solve(G,D)
     return M
+
+
+def perform_inversion_lsq_with_posterior(real_data_array, green_func_array, cov_data, cov_model_prior, m_prior):
+    """Function to perform least sqauraes inversion using real data and greens functions to obtain the moment tensor. (See Walter 2009 thesis, Appendix C for theoretical details).
+    Inputs are: real_data_array - array of size (k,t_samples), containing real data to invert for; green_func_array - array of size (k, n_mt_comp, t_samples), containing the greens function data for the various mt components and each station (where k is the number of stations*station components to invert for, t_samples is the number of time samples, and n_mt_comp is the number of moment tensor components specficied in the greens functions array).
+    Outputs are: M - tensor of length n_mt_comp, containing the moment tensor (or single force) inverted for."""
+    # Perform the inversion:
+    D = np.transpose(np.array([np.hstack(list(real_data_array[:]))]))
+    G =  np.transpose(np.vstack(np.hstack(list(green_func_array[:]))))
+    G_T =  np.transpose(G) 
+    # Check that key matrices are invertable, and proceed if so:
+    if np.linalg.det(cov_model_prior) == 0:
+        print("Error: Matrix is singular (det = 0), therefore inverse of <cov_model_prior> cannot be found.")
+        sys.exit()
+    if np.linalg.det(cov_data[0:100,0:100]) == 0:
+        # (Note: Only test a section, as takes a long time to calculate for entire matrix!)
+        print("Error: Matrix is singular (det = 0), therefore inverse of <cov_data> cannot be found.")
+        sys.exit()
+    C_D_inv = np.linalg.inv(cov_data)
+    C_M_inv = np.linalg.inv(cov_model_prior)
+    if np.linalg.det(np.dot(G_T, np.dot(C_D_inv, G)) + C_M_inv) == 0:
+        print("Error: Matrix is singular (det = 0), therefore inverse of forward operator cannot be found.")
+        sys.exit()
+    # Perform inversion to find posterior model and covariance:
+    # (for details, see eq. 6.8,6.9 in Fichtner inverse theory book)
+    C_M_post = np.linalg.inv(np.dot(G_T, np.dot(C_D_inv, G)) + C_M_inv)
+    M_post_second_term_tmp = np.dot(G_T, np.dot(C_D_inv, D)) + np.dot(C_M_inv, m_prior)
+    M_post = np.dot(C_M_post, M_post_second_term_tmp)
+    # And tidy:
+    del D, G, G_T, C_D_inv, C_M_inv, M_post_second_term_tmp
+    gc.collect()
+    return M_post, C_M_post
+
 
 # @jit(nopython=True)
 # def perform_gridsearch_inversion_CORE_(D, G, search_dim=10):
