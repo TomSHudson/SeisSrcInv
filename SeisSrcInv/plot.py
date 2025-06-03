@@ -1123,9 +1123,9 @@ def find_delta_gamm_values_from_sixMT(sixMT):
     lambda1 = full_MT_eigvals_sorted[0]
     lambda2 = full_MT_eigvals_sorted[1]
     lambda3 = full_MT_eigvals_sorted[2]
-    gamma = np.arctan(((-1*lambda1) + (2*lambda2) - lambda3)/((3**0.5)*(lambda1 - lambda3))) # eq. 20a (Tape and Tape 2012)
-    beta = np.arccos((lambda1+lambda2+lambda3)/((3**0.5)*((lambda1**2 + lambda2**2 + lambda3**2)**0.5))) # eq. 20b (Tape and Tape 2012)
-    delta = (np.pi/2.) - beta # eq. 23 (Tape and Tape 2012)
+    gamma = np.arctan(((-1*lambda1) + (2*lambda2) - lambda3)/((3**0.5)*(lambda1 - lambda3))) # eq. 20a (Tape and Tape 2013)
+    beta = np.arccos((lambda1+lambda2+lambda3)/((3**0.5)*((lambda1**2 + lambda2**2 + lambda3**2)**0.5))) # eq. 20b (Tape and Tape 2013)
+    delta = (np.pi/2.) - beta # eq. 23 (Tape and Tape 2013)
 
     return delta, gamma
     
@@ -1227,7 +1227,27 @@ def equal_angle_stereographic_projection_conv_YZ_plane(x,y,z):
     Z = z/(1+x)
     return Y,Z
 
-def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, figure_filename=[], plot_max_prob_on_Lune=False):
+def generate_2d_gaussian(mu_x, mu_y, sigma_x, sigma_y,
+                         x_min, x_max, y_min, y_max,
+                         num_points_x=100, num_points_y=100):
+    """
+    Generate a 2D array of amplitudes from a 2D Gaussian distribution.
+
+    Returns:
+        X, Y: coordinate grids
+        Z: amplitude array
+    """
+    x = np.linspace(x_min, x_max, num_points_x)
+    y = np.linspace(y_min, y_max, num_points_y)
+    X, Y = np.meshgrid(x, y)
+
+    # 2D Gaussian formula
+    Z = np.exp(-(((X - mu_x) ** 2) / (2 * sigma_x ** 2) +
+                 ((Y - mu_y) ** 2) / (2 * sigma_y ** 2)))
+    
+    return X, Y, Z
+
+def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, MT_max_cov_matrix=[], nobs=1, figure_filename=[], plot_max_prob_on_Lune=False):
     """Function to plot Lune plot for certain inversions (if Lune plot is relevent, i.e. not DC constrained or single-force constrained).
     Will plot sampled MT solutions on Lune, binned. Will also fit gaussian to this and return the maximum location of the gaussian and the contour coordinates. Also outputs saved figure."""
     # Setup Lune figure:
@@ -1329,8 +1349,54 @@ def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, figure_filename=
         # And plot data coord:
         x,y,z = convert_spherical_coords_to_cartesian_coords(1.,(np.pi/2.) - delta,gamma)
         Y,Z = equal_angle_stereographic_projection_conv_YZ_plane(x,y,z)
-        ax.scatter(Y,Z, c="gold", alpha=0.8,s=250, marker="*", zorder=100)
-    
+        ax.scatter(Y,Z, c="gold", alpha=0.8,s=250, marker="*", zorder=100, linewidths=1, edgecolors='k')
+
+        # Plot uncertainty in max. prob single solution, if passed as an argument:
+        if len(MT_max_cov_matrix) > 0:
+            six_MT_cov_vals = np.sqrt(np.diagonal(MT_max_cov_matrix)) # Standard deviation of cov. values
+
+            # Find delta-gamma gaussians:
+            # Find max. diff delta and gamma:
+            # Option 1:
+            # std_mult_fac = 3 #10 #1
+            # delta, gamma = find_delta_gamm_values_from_sixMT(six_MT_max_prob)
+            # delta_max, gamma_max = find_delta_gamm_values_from_sixMT(six_MT_max_prob+six_MT_cov_vals)
+            # delta_std, gamma_std = delta_max - delta, gamma_max-gamma
+            # delta_min, gamma_min = find_delta_gamm_values_from_sixMT(six_MT_max_prob-six_MT_cov_vals)
+            # if delta - delta_min > delta_std:
+            #     delta_std = delta - delta_min
+            # if gamma - gamma_min > gamma_std:
+            #     gamma_std = gamma - gamma_min    
+            # delta_std, gamma_std = std_mult_fac*delta_std, std_mult_fac*gamma_std 
+            # Option 2:
+            delta_std, gamma_std = find_delta_gamm_values_from_sixMT(six_MT_cov_vals)
+            delta_std, gamma_std = delta_std/np.sqrt(nobs), gamma_std/np.sqrt(nobs) # And convert to std err
+
+            # Generate the 2D gaussian:
+            mu_x, mu_y = delta, gamma
+            sigma_x, sigma_y = delta_std, gamma_std
+            x_min, x_max, y_min, y_max = -np.pi/2, np.pi/2, -np.pi/6, np.pi/6
+            Delta_gau_grid, Gamma_gau_grid, Delta_Gamma_gau_amps_arr = generate_2d_gaussian(mu_x, mu_y, sigma_x, sigma_y,
+                                                                                            x_min, x_max, y_min, y_max,
+                                                                                            num_points_x=400, num_points_y=100)
+            # And normalise gauss amps:
+            Delta_Gamma_gau_amps_arr = Delta_Gamma_gau_amps_arr / np.max(np.abs(Delta_Gamma_gau_amps_arr))
+
+            Delta_gau_grid_lune_coords, Gamma_gau_grid_lune_coords = Delta_gau_grid.copy(), Gamma_gau_grid.copy()
+
+            for i in range(Delta_gau_grid.shape[0]):
+                for j in range(Delta_gau_grid.shape[1]):
+                    delta_curr = Delta_gau_grid[i,j]
+                    gamma_curr = Gamma_gau_grid[i,j]
+                    x,y,z = convert_spherical_coords_to_cartesian_coords(1.,(np.pi/2.) - delta_curr,gamma_curr)
+                    Y,Z = equal_angle_stereographic_projection_conv_YZ_plane(x,y,z)
+                    # ax.scatter(Y,Z, c=Delta_Gamma_gau_amps_arr[i,j], alpha=0.5,s=50, marker="o", zorder=99, vmin=0, vmax=1)
+                    Delta_gau_grid_lune_coords[i,j] = Y
+                    Gamma_gau_grid_lune_coords[i,j] = Z
+            # And plot on Lune:
+            ax.pcolormesh(Delta_gau_grid_lune_coords, Gamma_gau_grid_lune_coords, Delta_Gamma_gau_amps_arr, zorder=99, cmap='magma', alpha=0.65)
+            # ax.contour(Delta_gau_grid_lune_coords, Gamma_gau_grid_lune_coords, Delta_Gamma_gau_amps_arr, [0.66*Delta_Gamma_gau_amps_arr], alpha=0.8, c="#30a468", linewidths=1)
+
     # And Finish plot:
     # Plot labels for various defined locations (locations from Tape and Tape 2012, table 1):
     plt.scatter(0.,1.,s=50,color="black")
@@ -1345,8 +1411,8 @@ def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, figure_filename=
     Y,Z = equal_angle_stereographic_projection_conv_YZ_plane(x,y,z)
     plt.scatter(Y,Z,s=50,color="red")
     plt.text(Y,Z,"TC$^-$",color="red", fontsize=12, horizontalalignment="left", verticalalignment='top')
-    plt.scatter(0.,0.,s=50,color="red")
-    plt.text(0.,0.,"DC",color="red", fontsize=12, horizontalalignment="center", verticalalignment='top')
+    plt.scatter(0.,0.,s=50,color="red", zorder=100)
+    plt.text(0.,0.,"DC",color="red", fontsize=12, horizontalalignment="center", verticalalignment='top', zorder=100)
     # Various tidying:
     ax.set_xlim(-1.,1.)
     ax.set_ylim(-1.,1.)
