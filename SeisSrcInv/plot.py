@@ -1247,7 +1247,7 @@ def generate_2d_gaussian(mu_x, mu_y, sigma_x, sigma_y,
     
     return X, Y, Z
 
-def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, MT_max_cov_matrix=[], nobs=1, figure_filename=[], plot_max_prob_on_Lune=False):
+def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, MT_max_cov_matrix=[], MTs_cov_matrix=[], nobs=1, figure_filename=[], plot_max_prob_on_Lune=False, plot_multiple_MTs_together=False):
     """Function to plot Lune plot for certain inversions (if Lune plot is relevent, i.e. not DC constrained or single-force constrained).
     Will plot sampled MT solutions on Lune, binned. Will also fit gaussian to this and return the maximum location of the gaussian and the contour coordinates. Also outputs saved figure."""
     # Setup Lune figure:
@@ -1397,8 +1397,34 @@ def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, MT_max_cov_matri
             ax.pcolormesh(Delta_gau_grid_lune_coords, Gamma_gau_grid_lune_coords, Delta_Gamma_gau_amps_arr, zorder=99, cmap='magma', alpha=0.65)
             # ax.contour(Delta_gau_grid_lune_coords, Gamma_gau_grid_lune_coords, Delta_Gamma_gau_amps_arr, [0.66*Delta_Gamma_gau_amps_arr], alpha=0.8, c="#30a468", linewidths=1)
 
+    # Plot multiple MT solutions on Lune plot, if specified:
+    if plot_multiple_MTs_together:
+        # Get errors, if given:
+        if MTs_cov_matrix.shape[2] > 1:
+            rms_errs_all = np.zeros(MTs_cov_matrix.shape[2])
+            for i in range(MTs_cov_matrix.shape[2]):
+                six_MT_cov_vals_tmp = np.sqrt(np.diagonal(MTs_cov_matrix[:,:,i])) # Standard deviation of cov. values
+                rms_errs_all[i] = np.sqrt(np.sum(six_MT_cov_vals_tmp**2)) # RMS error of cov. values
+        if MTs.shape[1] > 1:
+            # Loop over MTs:
+            for i in range(MTs.shape[1]):
+                # Get delta and gamma values for sixMT:
+                MT_current = MTs[:,i]
+                # And get delta and gamma values:
+                delta, gamma = find_delta_gamm_values_from_sixMT(MT_current)
+                # And plot data coord:
+                x,y,z = convert_spherical_coords_to_cartesian_coords(1.,(np.pi/2.) - delta,gamma)
+                Y,Z = equal_angle_stereographic_projection_conv_YZ_plane(x,y,z)
+                # And colour by error, if given:
+                if MTs_cov_matrix.shape[2] > 1:
+                    norm=matplotlib.colors.LogNorm(vmin=np.min(rms_errs_all), vmax=np.max(rms_errs_all))
+                    sc = ax.scatter(Y,Z, c=rms_errs_all[i], alpha=0.8,s=100, norm=norm, marker="o", zorder=100, linewidths=1, edgecolors='k', cmap='inferno_r')
+                else:
+                    ax.scatter(Y,Z, c="gold", alpha=0.8,s=100, marker="o", zorder=100, linewidths=1, edgecolors='k')
+
     # And Finish plot:
     # Plot labels for various defined locations (locations from Tape and Tape 2012, table 1):
+
     plt.scatter(0.,1.,s=50,color="black")
     plt.text(0.,1.,"Explosion", fontsize=12, horizontalalignment="center", verticalalignment='bottom')
     plt.scatter(0.,-1.,s=50,color="black")
@@ -1422,6 +1448,17 @@ def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, MT_max_cov_matri
         plt.savefig(figure_filename, dpi=600)
     else:
         plt.show()
+
+    # And save colour bar for MT errors, if needed:
+    if MTs_cov_matrix.shape[2] > 1:
+        # Separate figure for colorbar
+        fig2, ax2 = plt.subplots(figsize=(0.5, 6))
+        fig2.colorbar(sc, cax=ax2, orientation='vertical', label='RMS uncertainty')
+        fig2.tight_layout()
+        if not len(figure_filename) == 0:
+            fig2.savefig(figure_filename[:-4]+"_colourbar"+figure_filename[-4:], dpi=600, bbox_inches='tight')
+        else:
+            fig2.show()
     
     # # And return MT data at maximum (and mts within contour?!):
     # # Get all solutions associated with bins inside contour on Lune plot:
