@@ -1417,8 +1417,11 @@ def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, MT_max_cov_matri
                 Y,Z = equal_angle_stereographic_projection_conv_YZ_plane(x,y,z)
                 # And colour by error, if given:
                 if MTs_cov_matrix.shape[2] > 1:
-                    norm=matplotlib.colors.LogNorm(vmin=np.min(rms_errs_all), vmax=np.max(rms_errs_all))
-                    sc = ax.scatter(Y,Z, c=rms_errs_all[i], alpha=0.8,s=100, norm=norm, marker="o", zorder=100, linewidths=1, edgecolors='k', cmap='inferno_r')
+                    # norm=matplotlib.colors.LogNorm(vmin=np.min(rms_errs_all), vmax=np.max(rms_errs_all))
+                    # err_curr = rms_errs_all[i]
+                    norm=matplotlib.colors.Normalize(vmin=0, vmax=1)
+                    err_curr = rms_errs_all[i] / np.linalg.norm(MT_current)
+                    sc = ax.scatter(Y,Z, c=err_curr, alpha=0.8,s=100, norm=norm, marker="o", zorder=100, linewidths=1, edgecolors='k', cmap='inferno_r')
                 else:
                     ax.scatter(Y,Z, c="gold", alpha=0.8,s=100, marker="o", zorder=100, linewidths=1, edgecolors='k')
 
@@ -1453,7 +1456,8 @@ def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, MT_max_cov_matri
     if MTs_cov_matrix.shape[2] > 1:
         # Separate figure for colorbar
         fig2, ax2 = plt.subplots(figsize=(0.5, 6))
-        fig2.colorbar(sc, cax=ax2, orientation='vertical', label='RMS uncertainty')
+        # fig2.colorbar(sc, cax=ax2, orientation='vertical', label='RMS uncertainty')
+        fig2.colorbar(sc, cax=ax2, orientation='vertical', label='RMS fraction uncertainty')
         fig2.tight_layout()
         if not len(figure_filename) == 0:
             fig2.savefig(figure_filename[:-4]+"_colourbar"+figure_filename[-4:], dpi=600, bbox_inches='tight')
