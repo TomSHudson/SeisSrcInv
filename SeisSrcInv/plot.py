@@ -1247,12 +1247,13 @@ def generate_2d_gaussian(mu_x, mu_y, sigma_x, sigma_y,
     
     return X, Y, Z
 
-def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, MT_max_cov_matrix=[], MTs_cov_matrix=[], nobs=1, figure_filename=[], plot_max_prob_on_Lune=False, plot_multiple_MTs_together=False):
+def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, MT_max_cov_matrix=[], MTs_cov_matrix=[], nobs=1, figure_filename=[], ax=None, plot_max_prob_on_Lune=False, plot_multiple_MTs_together=False):
     """Function to plot Lune plot for certain inversions (if Lune plot is relevent, i.e. not DC constrained or single-force constrained).
     Will plot sampled MT solutions on Lune, binned. Will also fit gaussian to this and return the maximum location of the gaussian and the contour coordinates. Also outputs saved figure."""
     # Setup Lune figure:
-    fig = plt.figure(figsize=(8,8))
-    ax = fig.add_subplot(111)
+    if not ax:
+        fig = plt.figure(figsize=(8,8))
+        ax = fig.add_subplot(111)
     # Plot major gridlines:
     for phi in [-np.pi/6., np.pi/6.]:
         theta_range = np.linspace(0.0,np.pi,180)
@@ -1453,16 +1454,17 @@ def plot_Lune(MTs, MTp, six_MT_max_prob=[], frac_to_sample=0.1, MT_max_cov_matri
         plt.show()
 
     # And save colour bar for MT errors, if needed:
-    if MTs_cov_matrix.shape[2] > 1:
-        # Separate figure for colorbar
-        fig2, ax2 = plt.subplots(figsize=(0.5, 6))
-        # fig2.colorbar(sc, cax=ax2, orientation='vertical', label='RMS uncertainty')
-        fig2.colorbar(sc, cax=ax2, orientation='vertical', label='RMS fraction uncertainty')
-        fig2.tight_layout()
-        if not len(figure_filename) == 0:
-            fig2.savefig(figure_filename[:-4]+"_colourbar"+figure_filename[-4:], dpi=600, bbox_inches='tight')
-        else:
-            fig2.show()
+    if plot_multiple_MTs_together:
+        if MTs_cov_matrix.shape[2] > 1:
+            # Separate figure for colorbar
+            fig2, ax2 = plt.subplots(figsize=(0.5, 6))
+            # fig2.colorbar(sc, cax=ax2, orientation='vertical', label='RMS uncertainty')
+            fig2.colorbar(sc, cax=ax2, orientation='vertical', label='RMS fraction uncertainty')
+            fig2.tight_layout()
+            if not len(figure_filename) == 0:
+                fig2.savefig(figure_filename[:-4]+"_colourbar"+figure_filename[-4:], dpi=600, bbox_inches='tight')
+            else:
+                fig2.show()
     
     # # And return MT data at maximum (and mts within contour?!):
     # # Get all solutions associated with bins inside contour on Lune plot:
