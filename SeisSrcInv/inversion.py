@@ -284,6 +284,30 @@ def perform_inversion(real_data_array, green_func_array, return_uncorr_cov_matri
         return M, cov_M
     else:
         return M
+    
+
+def perform_inversion_Scott_method(real_data_array, green_func_array, return_uncorr_cov_matrix=False):
+    """Function to perform least sqauraes inversion using real data and greens functions to obtain the moment tensor. (See Walter 2009 thesis, Appendix C for theoretical details).
+    Inputs are: real_data_array - array of size (k,t_samples), containing real data to invert for; green_func_array - array of size (k, n_mt_comp, t_samples), containing the greens function data for the various mt components and each station (where k is the number of stations*station components to invert for, t_samples is the number of time samples, and n_mt_comp is the number of moment tensor components specficied in the greens functions array).
+    Outputs are: M - tensor of length n_mt_comp, containing the moment tensor (or single force) inverted for."""
+    # Perform the inversion:
+    D = np.transpose(np.array([np.hstack(list(real_data_array[:]))])) # equivilent to matlab [real_data_array[0]; real_data_array[1]; real_data_array[2]]
+    G =  np.transpose(np.vstack(np.hstack(list(green_func_array[:])))) # equivilent to matlab [green_func_array[0]; green_func_array[1]; green_func_array[2]]
+    M_mean = np.matmul(np.linalg.inv(np.matmul(G.T, G)), np.matmul(G.T, D)) #np.matmul(np.matmul(G.T, G), np.matmul(G.T, D)) #np.divide(np.matmul(G.T, G), np.matmul(G.T, D))
+    if return_uncorr_cov_matrix:
+        # Estimate data uncertainty:
+        sigma_d = 0.2*np.max(np.abs(D)) # Estimate noise level from the data
+        Cd_inv = np.zeros((len(D), len(D)))
+        np.fill_diagonal(Cd_inv, 1./(sigma_d**2))
+        # Find prior information:
+        sigma_m = 0.1*np.max(np.abs(M_mean)) # Doesn't currently do anything, uninformative prior in next lines
+        Cm_inv = np.zeros((6,6))
+        np.fill_diagonal(Cm_inv, 1./(sigma_m**2))
+        # And find posterior covariance:
+        cov_M = np.linalg.inv(np.matmul(G.T, np.matmul(Cd_inv, G)) + Cm_inv) # (see inverse theory for structure of this eqn.)
+        return M_mean, cov_M
+    else:
+        return M_mean
 
 
 def perform_inversion_lsq_with_posterior(real_data_array, green_func_array, cov_data, cov_model_prior, m_prior):
